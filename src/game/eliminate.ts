@@ -1,7 +1,7 @@
 import * as turf from "@turf/turf";
 import type { BBox, Feature, FeatureCollection, MultiPolygon, Polygon, Point } from "geojson";
 import type { AskedQuestion, DatasetName, LatLng, POICollection, PossibleArea } from "./types";
-import { BOROUGHS, getPOIs } from "../data/datasets";
+import { BOROUGHS, COASTLINE, getPOIs } from "../data/datasets";
 import questions from "../data/questions.json";
 
 const MILES_TO_KM = 1.609344;
@@ -206,12 +206,29 @@ function measuringCategory(key: string) {
 function eliminateMeasuring(area: PossibleArea, q: Extract<AskedQuestion, { type: "measuring" }>): PossibleArea {
   const cat = measuringCategory(q.categoryKey);
   if (!cat) return area;
+  const radiusKm = q.seekerNearestDistanceMi * MILES_TO_KM;
+  if (radiusKm <= 0) return area;
+
+  // Coastline = line buffer instead of circle-union (lines, not points).
+  if (cat.kind === "line" && cat.dataset === "coastline") {
+    if (!COASTLINE.features.length) return area;
+    const buffered = turf.buffer(COASTLINE, radiusKm, { units: "kilometers" });
+    if (!buffered) return area;
+    // turf.buffer returns FeatureCollection when given one — union the parts.
+    let union: Feature<Polygon | MultiPolygon> | null = null;
+    const parts = "features" in buffered ? buffered.features : [buffered];
+    for (const part of parts) {
+      const p = part as Feature<Polygon | MultiPolygon>;
+      union = union ? ((turf.union(turf.featureCollection([union, p])) as Feature<Polygon | MultiPolygon> | null) ?? union) : p;
+    }
+    if (!union) return area;
+    return q.answer === "closer" ? safeIntersect(area, union) : safeDifference(area, union);
+  }
+
   const pois = getPOIs(cat.dataset as POIDataset);
   if (!pois.features.length) return area;
 
   // Union of circles of radius d_s around each POI = "points whose distance-to-nearest-POI ≤ d_s"
-  const radiusKm = q.seekerNearestDistanceMi * MILES_TO_KM;
-  if (radiusKm <= 0) return area;
   let union: Feature<Polygon | MultiPolygon> | null = null;
   for (const f of pois.features) {
     const c = turf.circle((f.geometry as Point).coordinates, radiusKm, { steps: 64, units: "kilometers" });

@@ -391,6 +391,49 @@ button { font-family: inherit; }
   border: 1px solid var(--border);
 }
 
+.lasso-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1100;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+}
+.lasso-bar__count {
+  font-size: 13px;
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+.lasso-bar__btn {
+  flex: 1;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 40px;
+  cursor: pointer;
+}
+.lasso-bar__btn:disabled {
+  color: var(--text-dim);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.lasso-bar__btn--primary {
+  background: var(--accent);
+  color: #0b1115;
+  border-color: var(--accent);
+}
+
 .qform__link {
   background: transparent;
   border: 0;

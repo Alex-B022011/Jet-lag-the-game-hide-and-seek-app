@@ -17,7 +17,9 @@ export type DatasetName =
   | "golf-courses"
   | "foreign-consulates"
   | "rail-stations"
-  | "parks";
+  | "parks"
+  | "coastline"
+  | "water-bodies";
 
 export type AskedQuestion =
   | {

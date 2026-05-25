@@ -1,12 +1,13 @@
 import { useState } from "react";
 import Map, { type ComposingPreview } from "./components/Map";
-import QuestionForm from "./components/QuestionForm";
+import QuestionForm, { type PendingPhotoCallback } from "./components/QuestionForm";
 import QuestionHistory from "./components/QuestionHistory";
 import StatsBar from "./components/StatsBar";
 import SeekerLocation from "./components/SeekerLocation";
 import GameSizeToggle from "./components/GameSizeToggle";
 import { useGame } from "./state/gameStore";
 import "./styles.css";
+import type { LatLng } from "./game/types";
 
 type Panel = "ask" | "history" | "stats";
 
@@ -14,12 +15,34 @@ export default function App() {
   const [preview, setPreview] = useState<ComposingPreview>(null);
   const [panel, setPanel] = useState<Panel>("ask");
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [lassoCb, setLassoCb] = useState<PendingPhotoCallback | null>(null);
+  const setPickMode = useGame((s) => s.setPickMode);
   const reset = useGame((s) => s.reset);
+
+  const startLasso = (cb: PendingPhotoCallback) => {
+    setLassoCb(() => cb);
+    setPickMode("lasso");
+    setSheetOpen(false);
+  };
+  const cancelLasso = () => {
+    setLassoCb(null);
+    setPickMode("seeker");
+  };
+  const completeLasso = (verts: LatLng[]) => {
+    if (lassoCb) lassoCb(verts);
+    setLassoCb(null);
+    setPickMode("seeker");
+  };
 
   return (
     <div className="app">
       <div className="app__map">
-        <Map preview={preview} />
+        <Map
+          preview={preview}
+          lassoActive={lassoCb !== null}
+          onLassoComplete={completeLasso}
+          onLassoCancel={cancelLasso}
+        />
       </div>
 
       <div className="app__topbar">
@@ -60,7 +83,7 @@ export default function App() {
         </div>
 
         <div className="sheet__body">
-          {panel === "ask" && <QuestionForm onPreviewChange={setPreview} />}
+          {panel === "ask" && <QuestionForm onPreviewChange={setPreview} onStartLasso={startLasso} />}
           {panel === "history" && <QuestionHistory />}
           {panel === "stats" && <StatsBar />}
         </div>

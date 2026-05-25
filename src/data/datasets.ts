@@ -1,5 +1,5 @@
 import type { DatasetName, POICollection } from "../game/types";
-import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
+import type { Feature, FeatureCollection, LineString, MultiPolygon, Polygon } from "geojson";
 
 import boroughs from "./boroughs.json";
 import airports from "./pois/airports.json";
@@ -14,6 +14,11 @@ import golfCourses from "./pois/golf-courses.json";
 import foreignConsulates from "./pois/foreign-consulates.json";
 import railStations from "./pois/rail-stations.json";
 import parks from "./pois/parks.json";
+import coastline from "./pois/coastline.json";
+import waterBodies from "./pois/water-bodies.json";
+
+export const COASTLINE = coastline as unknown as FeatureCollection<LineString, { id: string; name: string | null }>;
+export type CoastFeature = Feature<LineString, { id: string; name: string | null }>;
 
 export const BOROUGHS = boroughs as unknown as FeatureCollection<MultiPolygon | Polygon, { name: string }>;
 
@@ -30,6 +35,8 @@ const POIS: Record<Exclude<DatasetName, "boroughs">, POICollection> = {
   "foreign-consulates": foreignConsulates as unknown as POICollection,
   "rail-stations": railStations as unknown as POICollection,
   parks: parks as unknown as POICollection,
+  coastline: { type: "FeatureCollection", features: [] } as POICollection,
+  "water-bodies": waterBodies as unknown as POICollection,
 };
 
 export function getPOIs(name: Exclude<DatasetName, "boroughs">): POICollection {

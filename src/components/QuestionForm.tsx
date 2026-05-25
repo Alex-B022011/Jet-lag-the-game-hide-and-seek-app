@@ -3,7 +3,7 @@ import * as turf from "@turf/turf";
 import type { Feature, Point } from "geojson";
 import { useGame } from "../state/gameStore";
 import questions from "../data/questions.json";
-import { BOROUGHS, getPOIs } from "../data/datasets";
+import { BOROUGHS, COASTLINE, getPOIs } from "../data/datasets";
 import type { AskedQuestion, GameSize, LatLng } from "../game/types";
 import type { ComposingPreview } from "./Map";
 
@@ -33,6 +33,19 @@ function isAllowed(sizes: string[], size: GameSize) {
 
 function nearestPoiTo(p: LatLng, dataset: string): { id: string; name: string | null; distMi: number } | null {
   if (dataset === "boroughs") return null;
+  // Coastline: compute distance to nearest point on any line segment.
+  if (dataset === "coastline") {
+    let best = Infinity;
+    const target = turf.point([p.lng, p.lat]);
+    for (const f of COASTLINE.features) {
+      const snapped = turf.nearestPointOnLine(f as any, target, { units: "kilometers" });
+      if (snapped.properties.dist != null && snapped.properties.dist < best) {
+        best = snapped.properties.dist as number;
+      }
+    }
+    if (!isFinite(best)) return null;
+    return { id: "coastline", name: "Coastline", distMi: best / 1.609344 };
+  }
   const fc = getPOIs(dataset as any);
   if (!fc.features.length) return null;
   let best: { id: string; name: string | null; distMi: number } | null = null;
@@ -63,11 +76,14 @@ function seekerBoroughName(p: LatLng): string | null {
   return null;
 }
 
+export type PendingPhotoCallback = (vertices: LatLng[]) => void;
+
 export type Props = {
   onPreviewChange: (p: ComposingPreview) => void;
+  onStartLasso: (cb: PendingPhotoCallback) => void;
 };
 
-export default function QuestionForm({ onPreviewChange }: Props) {
+export default function QuestionForm({ onPreviewChange, onStartLasso }: Props) {
   const seeker = useGame((s) => s.seekerPin);
   const size = useGame((s) => s.size);
   const askQuestion = useGame((s) => s.askQuestion);
@@ -120,7 +136,7 @@ export default function QuestionForm({ onPreviewChange }: Props) {
       {seeker && tab === "tentacle" && (
         <TentacleForm seeker={seeker} size={size} onApply={askQuestion} onPreview={onPreviewChange} />
       )}
-      {seeker && tab === "photo" && <PhotoForm size={size} onApply={askQuestion} />}
+      {seeker && tab === "photo" && <PhotoForm size={size} onApply={askQuestion} onStartLasso={onStartLasso} />}
     </div>
   );
 }
@@ -533,10 +549,39 @@ function TentacleForm({
 }
 
 // --------- Photo ---------
-function PhotoForm({ size, onApply }: { size: GameSize; onApply: (q: AskedQuestion) => void }) {
+function PhotoForm({
+  size,
+  onApply,
+  onStartLasso,
+}: {
+  size: GameSize;
+  onApply: (q: AskedQuestion) => void;
+  onStartLasso: (cb: PendingPhotoCallback) => void;
+}) {
   const prompts = questions.photo.prompts.filter((p) => isAllowed(p.sizes, size));
   const [promptKey, setPromptKey] = useState(prompts[0]?.key ?? "");
   const prompt = prompts.find((p) => p.key === promptKey);
+
+  const log = (polygon: { type: "Polygon"; coordinates: number[][][] } | null) => {
+    if (!prompt) return;
+    onApply({
+      id: crypto.randomUUID(),
+      type: "photo",
+      promptKey: prompt.key,
+      promptLabel: prompt.label,
+      polygon,
+      ts: Date.now(),
+    });
+  };
+
+  const startLasso = () => {
+    if (!prompt) return;
+    onStartLasso((verts) => {
+      // Close the ring by repeating the first vertex.
+      const ring = [...verts.map((v) => [v.lng, v.lat]), [verts[0].lng, verts[0].lat]];
+      log({ type: "Polygon", coordinates: [ring] });
+    });
+  };
 
   return (
     <div className="qform__body">
@@ -550,26 +595,14 @@ function PhotoForm({ size, onApply }: { size: GameSize; onApply: (q: AskedQuesti
       </select>
 
       <div className="qform__hint">
-        Photo questions don't auto-eliminate. Log the question; review the photo, then use Radar/Matching/etc. with what
-        you learned. (A lasso tool for manual elimination can be added later.)
+        Once you've seen the photo, eliminate the area it rules out by drawing a polygon. Or just log the question for now.
       </div>
 
-      <button
-        className="qform__apply"
-        disabled={!prompt}
-        onClick={() => {
-          if (!prompt) return;
-          onApply({
-            id: crypto.randomUUID(),
-            type: "photo",
-            promptKey: prompt.key,
-            promptLabel: prompt.label,
-            polygon: null,
-            ts: Date.now(),
-          });
-        }}
-      >
-        Log photo question
+      <button className="qform__apply" disabled={!prompt} onClick={startLasso}>
+        Draw eliminated area on map
+      </button>
+      <button className="qform__apply qform__apply--secondary" disabled={!prompt} onClick={() => log(null)}>
+        Log without eliminating
       </button>
     </div>
   );

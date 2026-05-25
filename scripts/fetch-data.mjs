@@ -35,6 +35,23 @@ const POI_QUERIES = [
   { name: "parks", filter: '["leisure"="park"]' },
 ];
 
+// Datasets that aren't simple POIs — saved as raw OSM line/polygon GeoJSON.
+const OVERPASS_RAW = [
+  {
+    name: "coastline",
+    query: `[out:json][timeout:90];(way["natural"="coastline"](40.4,-74.4,41.0,-73.5););out geom;`,
+  },
+  {
+    name: "water-bodies",
+    query: `[out:json][timeout:90];(
+      way["natural"="water"]["name"](40.49,-74.06,40.92,-73.7);
+      relation["natural"="water"]["name"](40.49,-74.06,40.92,-73.7);
+      way["waterway"="riverbank"]["name"](40.49,-74.06,40.92,-73.7);
+    );out center tags;`,
+    asPoints: true,
+  },
+];
+
 function overpassQuery(filter) {
   const { s, w, n, e } = BBOX;
   return `[out:json][timeout:60];
@@ -126,11 +143,59 @@ async function fetchPOI(name, filter) {
   }
 }
 
+async function fetchRaw(name, query, asPoints) {
+  console.log(`Fetching ${name}...`);
+  try {
+    const body = `data=${encodeURIComponent(query)}`;
+    const res = await fetch(OVERPASS, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "jet-lag-nyc-seeker-app/0.1",
+        "Accept": "application/json,*/*",
+      },
+      body,
+    });
+    if (!res.ok) {
+      console.error(`  → ${name} failed: HTTP ${res.status}`);
+      return;
+    }
+    const data = await res.json();
+    if (asPoints) {
+      const gj = osmToGeoJSON(data.elements || []);
+      fs.writeFileSync(path.join(POIS, `${name}.geojson`), JSON.stringify(gj));
+      console.log(`  → ${gj.features.length} ${name}`);
+    } else {
+      // Convert ways with `geometry` to LineString features.
+      const features = [];
+      for (const el of data.elements || []) {
+        if (el.type === "way" && Array.isArray(el.geometry)) {
+          features.push({
+            type: "Feature",
+            properties: { id: `${el.type}/${el.id}`, name: el.tags?.name ?? null },
+            geometry: { type: "LineString", coordinates: el.geometry.map((p) => [p.lon, p.lat]) },
+          });
+        }
+      }
+      fs.writeFileSync(
+        path.join(POIS, `${name}.geojson`),
+        JSON.stringify({ type: "FeatureCollection", features }),
+      );
+      console.log(`  → ${features.length} ${name} lines`);
+    }
+  } catch (err) {
+    console.error(`  → ${name} error:`, err.message);
+  }
+}
+
 async function main() {
   await fetchBoroughs();
   for (const q of POI_QUERIES) {
     await fetchPOI(q.name, q.filter);
-    // Be polite to Overpass — small delay between queries
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  for (const q of OVERPASS_RAW) {
+    await fetchRaw(q.name, q.query, q.asPoints);
     await new Promise((r) => setTimeout(r, 1500));
   }
   console.log("Done.");

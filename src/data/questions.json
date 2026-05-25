@@ -12,7 +12,8 @@
       { "group": "POI", "key": "match-library", "label": "Library", "dataset": "libraries", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
       { "group": "POI", "key": "match-museum", "label": "Museum", "dataset": "museums", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
       { "group": "POI", "key": "match-park", "label": "Park", "dataset": "parks", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
-      { "group": "Natural", "key": "match-landmass", "label": "Landmass (Manhattan / Long Island / Mainland)", "dataset": "boroughs", "sizes": ["S", "M", "L"], "kind": "landmass" }
+      { "group": "Natural", "key": "match-landmass", "label": "Landmass (Manhattan / Long Island / Mainland)", "dataset": "boroughs", "sizes": ["S", "M", "L"], "kind": "landmass" },
+      { "group": "Natural", "key": "match-water-body", "label": "Body of Water (nearest named)", "dataset": "water-bodies", "sizes": ["S", "M", "L"], "kind": "voronoi-point" }
     ]
   },
   "radar": {
@@ -59,7 +60,9 @@
       { "group": "POI", "key": "measure-movie-theater", "label": "Movie Theater", "dataset": "movie-theaters", "sizes": ["S", "M", "L"] },
       { "group": "Utilities", "key": "measure-hospital", "label": "Hospital", "dataset": "hospitals", "sizes": ["S", "M", "L"] },
       { "group": "Utilities", "key": "measure-library", "label": "Library", "dataset": "libraries", "sizes": ["S", "M", "L"] },
-      { "group": "Utilities", "key": "measure-foreign-consulate", "label": "Foreign Consulate", "dataset": "foreign-consulates", "sizes": ["S", "M", "L"] }
+      { "group": "Utilities", "key": "measure-foreign-consulate", "label": "Foreign Consulate", "dataset": "foreign-consulates", "sizes": ["S", "M", "L"] },
+      { "group": "Natural", "key": "measure-coastline", "label": "Coastline", "dataset": "coastline", "sizes": ["S", "M", "L"], "kind": "line" },
+      { "group": "Natural", "key": "measure-water-body", "label": "Body of Water (named)", "dataset": "water-bodies", "sizes": ["S", "M", "L"] }
     ]
   },
   "tentacle": {

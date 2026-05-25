@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import type { AskedQuestion, GameSize, LatLng, PossibleArea } from "../game/types";
 import { applyQuestion, buildHidingZone, replayHistory } from "../game/eliminate";
 
-export type PickMode = "seeker" | "thermometer-end";
+export type PickMode = "seeker" | "thermometer-end" | "lasso";
 
 type GameState = {
   size: GameSize;
@@ -43,6 +43,8 @@ export const useGame = create<GameState>()(
         const mode = get().pickMode;
         if (mode === "thermometer-end") {
           set({ thermometerEnd: p, pickMode: "seeker" });
+        } else if (mode === "lasso") {
+          // The LassoTool owns its own click stream; ignore.
         } else {
           set({ seekerPin: p });
         }

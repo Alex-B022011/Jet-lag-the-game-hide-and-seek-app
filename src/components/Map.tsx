@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, useMap, useMapEvents, Circle, Polyline } from "react-leaflet";
+import LassoTool from "./LassoTool";
+import * as turfMod from "@turf/turf";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as turf from "@turf/turf";
@@ -30,6 +32,9 @@ export type ComposingPreview =
 
 type Props = {
   preview: ComposingPreview;
+  lassoActive: boolean;
+  onLassoComplete: (vertices: LatLng[]) => void;
+  onLassoCancel: () => void;
 };
 
 function MapClickHandler() {
@@ -57,7 +62,8 @@ function FitOnce() {
   return null;
 }
 
-export default function Map({ preview }: Props) {
+export default function Map({ preview, lassoActive, onLassoComplete, onLassoCancel }: Props) {
+  void turfMod;
   const possibleArea = useGame((s) => s.possibleArea);
   const seekerPin = useGame((s) => s.seekerPin);
   const thermometerEnd = useGame((s) => s.thermometerEnd);
@@ -151,6 +157,8 @@ export default function Map({ preview }: Props) {
           pathOptions={{ color: "#9b2fbc", weight: 2, fillOpacity: 0.05, dashArray: "5 5" }}
         />
       )}
+
+      <LassoTool active={lassoActive} onComplete={onLassoComplete} onCancel={onLassoCancel} />
     </MapContainer>
     </>
   );
