@@ -6,4 +6,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   base: "/Jet-lag-the-game-hide-and-seek-app/",
+  build: {
+    // Keep the bundle compatible with iOS Safari 14+ in case of older phones.
+    target: ["es2020", "safari14"],
+  },
 });

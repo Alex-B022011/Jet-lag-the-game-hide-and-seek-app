@@ -28,6 +28,7 @@ button { font-family: inherit; }
 
 .app {
   position: relative;
+  height: 100vh;
   height: 100dvh;
   width: 100vw;
   overflow: hidden;
@@ -346,13 +347,15 @@ button { font-family: inherit; }
     left: auto;
     bottom: 0;
     width: 420px;
-    height: 100dvh;
+    height: 100vh;
+  height: 100dvh;
     border-radius: 0;
     border-left: 1px solid var(--border);
     border-top: 0;
   }
   .sheet.is-open, .sheet.is-peek {
-    height: 100dvh;
+    height: 100vh;
+  height: 100dvh;
   }
   .sheet__handle { display: none; }
   .app__map { right: 420px; }
@@ -365,3 +368,5 @@ button { font-family: inherit; }
   color: #c3ccd2 !important;
 }
 .leaflet-control-attribution a { color: #8cb6e6 !important; }
+
+#startup-error:empty { display: none; }
