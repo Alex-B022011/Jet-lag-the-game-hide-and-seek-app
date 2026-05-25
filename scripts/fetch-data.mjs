@@ -18,8 +18,10 @@ const BOROUGHS_URL =
 const BBOX = { s: 40.49, w: -74.06, n: 40.92, e: -73.7 };
 const OVERPASS = "https://overpass-api.de/api/interpreter";
 
+// "Commercial Airport" per the rulebook (page 24) — NYC plays JFK and LGA only.
+// EWR is across the river and outside the hiding zone, so it's excluded by bbox.
 const POI_QUERIES = [
-  { name: "airports", filter: '["aeroway"~"^(aerodrome|airport)$"]' },
+  { name: "airports", filter: '["aeroway"="aerodrome"]["iata"~"^(JFK|LGA)$"]' },
   { name: "hospitals", filter: '["amenity"="hospital"]' },
   { name: "libraries", filter: '["amenity"="library"]' },
   { name: "museums", filter: '["tourism"="museum"]' },
