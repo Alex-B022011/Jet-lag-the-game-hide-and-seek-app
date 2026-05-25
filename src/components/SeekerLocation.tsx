@@ -1,4 +1,16 @@
+import * as turf from "@turf/turf";
+import type { Feature, MultiPolygon, Polygon } from "geojson";
 import { useGame } from "../state/gameStore";
+import { BOROUGHS } from "../data/datasets";
+
+function boroughAt(lat: number, lng: number): string | null {
+  for (const f of BOROUGHS.features) {
+    if (turf.booleanPointInPolygon([lng, lat], f as Feature<Polygon | MultiPolygon>)) {
+      return (f.properties as { name?: string })?.name ?? null;
+    }
+  }
+  return null;
+}
 
 export default function SeekerLocation() {
   const seeker = useGame((s) => s.seekerPin);
@@ -19,9 +31,16 @@ export default function SeekerLocation() {
     );
   };
 
+  const borough = seeker ? boroughAt(seeker.lat, seeker.lng) : null;
+  const label = !seeker
+    ? "Locate me"
+    : borough
+      ? borough
+      : "Out of zone";
+
   return (
     <button className="locate" onClick={locate} title="Use my current location">
-      📍 {seeker ? `${seeker.lat.toFixed(4)}, ${seeker.lng.toFixed(4)}` : "Locate me"}
+      📍 {label}
     </button>
   );
 }

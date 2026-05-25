@@ -370,3 +370,34 @@ button { font-family: inherit; }
 .leaflet-control-attribution a { color: #8cb6e6 !important; }
 
 #startup-error:empty { display: none; }
+
+.pickmode-hint {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1002;
+  background: var(--warn);
+  color: #1a1208;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.qform__apply--secondary {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.qform__link {
+  background: transparent;
+  border: 0;
+  color: var(--accent-2);
+  padding: 4px 0;
+  font-size: 13px;
+  text-decoration: underline;
+  text-align: left;
+  cursor: pointer;
+}

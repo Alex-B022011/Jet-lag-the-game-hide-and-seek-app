@@ -24,7 +24,7 @@ const NYC_CENTER: [number, number] = [40.72, -73.95];
 
 export type ComposingPreview =
   | { kind: "radar"; center: LatLng; radiusMi: number }
-  | { kind: "thermometer"; start: LatLng; end: LatLng }
+  | { kind: "thermometer" }
   | { kind: "tentacle"; center: LatLng; radiusMi: number }
   | null;
 
@@ -32,11 +32,11 @@ type Props = {
   preview: ComposingPreview;
 };
 
-function SeekerClickHandler() {
-  const setSeeker = useGame((s) => s.setSeeker);
+function MapClickHandler() {
+  const handleMapClick = useGame((s) => s.handleMapClick);
   useMapEvents({
     click(e) {
-      setSeeker({ lat: e.latlng.lat, lng: e.latlng.lng });
+      handleMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
     },
   });
   return null;
@@ -60,6 +60,8 @@ function FitOnce() {
 export default function Map({ preview }: Props) {
   const possibleArea = useGame((s) => s.possibleArea);
   const seekerPin = useGame((s) => s.seekerPin);
+  const thermometerEnd = useGame((s) => s.thermometerEnd);
+  const pickMode = useGame((s) => s.pickMode);
 
   // Compute the eliminated area = hidingZone − possibleArea
   const eliminatedArea = useMemo<Feature<Polygon | MultiPolygon> | null>(() => {
@@ -73,13 +75,17 @@ export default function Map({ preview }: Props) {
   const eliminatedKey = useMemo(() => (eliminatedArea ? JSON.stringify(turf.bbox(eliminatedArea)) : "none"), [eliminatedArea]);
 
   return (
+    <>
+    {pickMode === "thermometer-end" && (
+      <div className="pickmode-hint">Tap the map to set the END pin</div>
+    )}
     <MapContainer center={NYC_CENTER} zoom={11} style={{ height: "100%", width: "100%" }} zoomControl={false}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FitOnce />
-      <SeekerClickHandler />
+      <MapClickHandler />
 
       {/* Hiding zone outline */}
       <GeoJSON
@@ -125,19 +131,19 @@ export default function Map({ preview }: Props) {
           pathOptions={{ color: "#1d6cf5", weight: 2, fillOpacity: 0.05, dashArray: "5 5" }}
         />
       )}
-      {preview?.kind === "thermometer" && (
+      {preview?.kind === "thermometer" && thermometerEnd && seekerPin && (
         <>
-          <Marker position={[preview.start.lat, preview.start.lng]} />
-          <Marker position={[preview.end.lat, preview.end.lng]} />
+          <Marker position={[thermometerEnd.lat, thermometerEnd.lng]} />
           <Polyline
             positions={[
-              [preview.start.lat, preview.start.lng],
-              [preview.end.lat, preview.end.lng],
+              [seekerPin.lat, seekerPin.lng],
+              [thermometerEnd.lat, thermometerEnd.lng],
             ]}
-            pathOptions={{ color: "#d2691e", weight: 3 }}
+            pathOptions={{ color: "#d2691e", weight: 3, dashArray: "6 4" }}
           />
         </>
       )}
+
       {preview?.kind === "tentacle" && (
         <Circle
           center={[preview.center.lat, preview.center.lng]}
@@ -146,5 +152,6 @@ export default function Map({ preview }: Props) {
         />
       )}
     </MapContainer>
+    </>
   );
 }

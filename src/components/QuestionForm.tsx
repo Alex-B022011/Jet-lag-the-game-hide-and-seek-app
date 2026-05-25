@@ -79,6 +79,7 @@ export default function QuestionForm({ onPreviewChange }: Props) {
               onClick={() => {
                 setTab(t);
                 onPreviewChange(null);
+                useGame.getState().setPickMode("seeker");
               }}
               role="tab"
               aria-selected={tab === t}
@@ -291,15 +292,17 @@ function ThermometerForm({
 }) {
   const opts = questions.thermometer.distances.filter((d) => isAllowed(d.sizes, size));
   const [distLabel, setDistLabel] = useState(opts[0]?.label ?? "");
-  const [endLat, setEndLat] = useState<number>(seeker.lat);
-  const [endLng, setEndLng] = useState<number>(seeker.lng);
   const [answer, setAnswer] = useState<"hotter" | "colder">("hotter");
-
-  const end: LatLng = { lat: endLat, lng: endLng };
+  const endPin = useGame((s) => s.thermometerEnd);
+  const pickMode = useGame((s) => s.pickMode);
+  const setPickMode = useGame((s) => s.setPickMode);
+  const setEnd = useGame((s) => s.setThermometerEnd);
 
   useEffect(() => {
-    onPreview({ kind: "thermometer", start: seeker, end: { lat: endLat, lng: endLng } });
-  }, [endLat, endLng, seeker.lat, seeker.lng, onPreview]);
+    onPreview({ kind: "thermometer" });
+  }, [onPreview]);
+
+  const pickingEnd = pickMode === "thermometer-end";
 
   return (
     <div className="qform__body">
@@ -312,26 +315,24 @@ function ThermometerForm({
         ))}
       </select>
 
-      <label className="qform__label">End-point lat / lng</label>
-      <div className="qform__row">
-        <input
-          className="qform__input"
-          type="number"
-          step="0.0001"
-          value={endLat}
-          onChange={(e) => setEndLat(parseFloat(e.target.value) || 0)}
-        />
-        <input
-          className="qform__input"
-          type="number"
-          step="0.0001"
-          value={endLng}
-          onChange={(e) => setEndLng(parseFloat(e.target.value) || 0)}
-        />
-      </div>
-      <div className="qform__hint">Tip: tap the map at your end-point, then copy from the seeker pin if needed.</div>
+      <label className="qform__label">End pin (where the seeker travels to)</label>
+      <button
+        className={`qform__apply ${pickingEnd ? "" : "qform__apply--secondary"}`}
+        onClick={() => setPickMode(pickingEnd ? "seeker" : "thermometer-end")}
+      >
+        {pickingEnd
+          ? "Tap the map…  (cancel)"
+          : endPin
+            ? `End: ${endPin.lat.toFixed(4)}, ${endPin.lng.toFixed(4)} — tap to change`
+            : "Tap to drop end pin on map"}
+      </button>
+      {endPin && (
+        <button className="qform__link" onClick={() => setEnd(null)}>
+          Clear end pin
+        </button>
+      )}
 
-      <label className="qform__label">Hider's answer (from their reference frame: are YOU hotter at the end?)</label>
+      <label className="qform__label">Hider's answer (after seeker travels to end pin, is the seeker hotter or colder?)</label>
       <div className="qform__choices">
         {(["hotter", "colder"] as const).map((a) => (
           <button
@@ -346,15 +347,18 @@ function ThermometerForm({
 
       <button
         className="qform__apply"
+        disabled={!endPin}
         onClick={() => {
+          if (!endPin) return;
           onApply({
             id: crypto.randomUUID(),
             type: "thermometer",
             startPin: seeker,
-            endPin: end,
+            endPin,
             answer,
             ts: Date.now(),
           });
+          setEnd(null);
           onPreview(null);
         }}
       >
