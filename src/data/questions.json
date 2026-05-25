@@ -1,0 +1,100 @@
+{
+  "matching": {
+    "format": "Is your nearest ___ the same as my ___?",
+    "hiderDraw": { "draw": 2, "keep": 1 },
+    "timeoutMin": 5,
+    "categories": [
+      { "group": "Transit", "key": "match-airport", "label": "Commercial Airport", "dataset": "airports", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
+      { "group": "Transit", "key": "match-station-name-length", "label": "Station Name's Length", "dataset": "rail-stations", "sizes": ["S", "M", "L"], "kind": "name-length" },
+      { "group": "AdminDiv", "key": "match-admin-1-borough", "label": "1st Admin — Borough", "dataset": "boroughs", "sizes": ["S", "M", "L"], "kind": "polygon" },
+      { "group": "AdminDiv", "key": "match-admin-2-county", "label": "2nd Admin — County", "dataset": "boroughs", "sizes": ["S", "M", "L"], "kind": "polygon", "note": "In NYC, county = borough" },
+      { "group": "POI", "key": "match-hospital", "label": "Hospital", "dataset": "hospitals", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
+      { "group": "POI", "key": "match-library", "label": "Library", "dataset": "libraries", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
+      { "group": "POI", "key": "match-museum", "label": "Museum", "dataset": "museums", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
+      { "group": "POI", "key": "match-park", "label": "Park", "dataset": "parks", "sizes": ["S", "M", "L"], "kind": "voronoi-point" }
+    ]
+  },
+  "radar": {
+    "format": "Are you within ___ of me?",
+    "hiderDraw": { "draw": 2, "keep": 1 },
+    "timeoutMin": 5,
+    "distances": [
+      { "label": "1/4 Mile", "miles": 0.25, "sizes": ["S", "M", "L"] },
+      { "label": "1/2 Mile", "miles": 0.5, "sizes": ["S", "M", "L"] },
+      { "label": "1 Mile", "miles": 1, "sizes": ["S", "M", "L"] },
+      { "label": "3 Miles", "miles": 3, "sizes": ["S", "M", "L"] },
+      { "label": "5 Miles", "miles": 5, "sizes": ["S", "M", "L"] },
+      { "label": "10 Miles", "miles": 10, "sizes": ["S", "M", "L"] },
+      { "label": "25 Miles", "miles": 25, "sizes": ["S", "M", "L"] },
+      { "label": "50 Miles", "miles": 50, "sizes": ["S", "M", "L"] },
+      { "label": "100 Miles", "miles": 100, "sizes": ["S", "M", "L"] },
+      { "label": "Choose...", "miles": null, "sizes": ["S", "M", "L"] }
+    ]
+  },
+  "thermometer": {
+    "format": "After traveling ___, am I hotter or colder?",
+    "hiderDraw": { "draw": 2, "keep": 1 },
+    "timeoutMin": 5,
+    "distances": [
+      { "label": "1/2 Mile", "miles": 0.5, "sizes": ["S", "M", "L"] },
+      { "label": "3 Miles", "miles": 3, "sizes": ["S", "M", "L"] },
+      { "label": "10 Miles", "miles": 10, "sizes": ["M", "L"] },
+      { "label": "50 Miles", "miles": 50, "sizes": ["L"] }
+    ]
+  },
+  "measuring": {
+    "format": "Compared to me, are you closer to or further from ___?",
+    "hiderDraw": { "draw": 3, "keep": 1 },
+    "timeoutMin": 5,
+    "categories": [
+      { "group": "Transit", "key": "measure-airport", "label": "Commercial Airport", "dataset": "airports", "sizes": ["S", "M", "L"] },
+      { "group": "Transit", "key": "measure-rail-station", "label": "Rail Station", "dataset": "rail-stations", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-park", "label": "Park", "dataset": "parks", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-zoo", "label": "Zoo", "dataset": "zoos", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-aquarium", "label": "Aquarium", "dataset": "aquariums", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-amusement-park", "label": "Amusement Park", "dataset": "amusement-parks", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-golf-course", "label": "Golf Course", "dataset": "golf-courses", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-museum", "label": "Museum", "dataset": "museums", "sizes": ["S", "M", "L"] },
+      { "group": "POI", "key": "measure-movie-theater", "label": "Movie Theater", "dataset": "movie-theaters", "sizes": ["S", "M", "L"] },
+      { "group": "Utilities", "key": "measure-hospital", "label": "Hospital", "dataset": "hospitals", "sizes": ["S", "M", "L"] },
+      { "group": "Utilities", "key": "measure-library", "label": "Library", "dataset": "libraries", "sizes": ["S", "M", "L"] },
+      { "group": "Utilities", "key": "measure-foreign-consulate", "label": "Foreign Consulate", "dataset": "foreign-consulates", "sizes": ["S", "M", "L"] }
+    ]
+  },
+  "tentacle": {
+    "format": "Within ___ miles of me, which ___ are you nearest to?",
+    "hiderDraw": { "draw": 4, "keep": 2 },
+    "timeoutMin": 5,
+    "prompts": [
+      { "key": "tentacle-museum", "label": "Museums Within 1 Mile", "radiusMi": 1, "dataset": "museums", "sizes": ["M", "L"] },
+      { "key": "tentacle-library", "label": "Libraries Within 1 Mile", "radiusMi": 1, "dataset": "libraries", "sizes": ["M", "L"] },
+      { "key": "tentacle-movie-theater", "label": "Movie Theaters Within 1 Mile", "radiusMi": 1, "dataset": "movie-theaters", "sizes": ["M", "L"] },
+      { "key": "tentacle-hospital", "label": "Hospitals Within 1 Mile", "radiusMi": 1, "dataset": "hospitals", "sizes": ["M", "L"] }
+    ]
+  },
+  "photo": {
+    "format": "Send me a photo of ___.",
+    "hiderDraw": { "draw": 2, "keep": 1, "note": "placeholder; rulebook page not yet supplied" },
+    "timeoutMin": { "S": 10, "M": 10, "L": 20 },
+    "prompts": [
+      { "key": "photo-widest-street", "label": "Widest Street", "sizes": ["S", "M", "L"] },
+      { "key": "photo-tree", "label": "Tree", "sizes": ["S", "M", "L"] },
+      { "key": "photo-any-building-transit", "label": "Any Building Visible from Transit Station", "sizes": ["S", "M", "L"] },
+      { "key": "photo-tallest-sightline", "label": "Tallest Structure in Your Current Sightline", "sizes": ["S", "M", "L"] },
+      { "key": "photo-selfie", "label": "You (Selfie)", "sizes": ["S", "M", "L"] },
+      { "key": "photo-sky", "label": "The Sky", "sizes": ["S", "M", "L"] },
+      { "key": "photo-tallest-building-transit", "label": "Tallest Building Visible from Transit Station", "sizes": ["M", "L"] },
+      { "key": "photo-trace-street", "label": "Trace Nearest Street/Path", "sizes": ["M", "L"] },
+      { "key": "photo-grocery-aisle", "label": "Grocery Store Aisle", "sizes": ["M", "L"] },
+      { "key": "photo-2-buildings", "label": "2 Buildings", "sizes": ["M", "L"] },
+      { "key": "photo-restaurant-interior", "label": "Restaurant Interior", "sizes": ["M", "L"] },
+      { "key": "photo-park", "label": "Park", "sizes": ["M", "L"] },
+      { "key": "photo-place-of-worship", "label": "Place of Worship", "sizes": ["M", "L"] },
+      { "key": "photo-train-platform", "label": "Train Platform", "sizes": ["M", "L"] },
+      { "key": "photo-half-mile-streets", "label": "1/2 Mile of Streets Traced", "sizes": ["L"] },
+      { "key": "photo-5-buildings", "label": "5 Buildings", "sizes": ["L"] },
+      { "key": "photo-biggest-water", "label": "Biggest Body of Water in Your Zone", "sizes": ["L"] },
+      { "key": "photo-tallest-mountain-transit", "label": "Tallest Mountain Visible from Transit Station", "sizes": ["L"] }
+    ]
+  }
+}
