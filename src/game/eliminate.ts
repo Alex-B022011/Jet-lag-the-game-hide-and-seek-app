@@ -16,6 +16,16 @@ function playingBbox(): BBox {
 
 type POIDataset = Exclude<DatasetName, "boroughs">;
 
+// In the NYC playing zone (4 boroughs), each borough sits on exactly one
+// landmass. Manhattan is its own island; Brooklyn + Queens are the NYC
+// portion of Long Island; the Bronx is the only borough on the US mainland.
+const BOROUGH_LANDMASS: Record<string, string> = {
+  Manhattan: "Manhattan Island",
+  Brooklyn: "Long Island",
+  Queens: "Long Island",
+  Bronx: "US Mainland",
+};
+
 export function buildHidingZone(): PossibleArea {
   // Union all 4 borough polygons into a single (multi)polygon.
   let acc: Feature<Polygon | MultiPolygon> | null = null;
@@ -135,6 +145,22 @@ function eliminateMatching(area: PossibleArea, q: Extract<AskedQuestion, { type:
     const seekerPoly = findPolygonByName(q.seekerAnchorName, BOROUGHS);
     if (!seekerPoly) return area;
     return q.answer === "yes" ? safeIntersect(area, seekerPoly) : safeDifference(area, seekerPoly);
+  }
+
+  if (cat.kind === "landmass") {
+    // seekerAnchorName carries the landmass name (e.g. "Long Island").
+    // Union every borough that sits on that landmass.
+    if (!q.seekerAnchorName) return area;
+    let union: Feature<Polygon | MultiPolygon> | null = null;
+    for (const f of BOROUGHS.features) {
+      const borough = (f.properties as { name?: string })?.name ?? "";
+      if (BOROUGH_LANDMASS[borough] !== q.seekerAnchorName) continue;
+      union = union
+        ? ((turf.union(turf.featureCollection([union, f as Feature<Polygon | MultiPolygon>])) as Feature<Polygon | MultiPolygon> | null) ?? union)
+        : (f as Feature<Polygon | MultiPolygon>);
+    }
+    if (!union) return area;
+    return q.answer === "yes" ? safeIntersect(area, union) : safeDifference(area, union);
   }
 
   if (cat.kind === "voronoi-point") {

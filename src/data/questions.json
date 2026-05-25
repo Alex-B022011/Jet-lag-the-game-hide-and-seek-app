@@ -11,7 +11,8 @@
       { "group": "POI", "key": "match-hospital", "label": "Hospital", "dataset": "hospitals", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
       { "group": "POI", "key": "match-library", "label": "Library", "dataset": "libraries", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
       { "group": "POI", "key": "match-museum", "label": "Museum", "dataset": "museums", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
-      { "group": "POI", "key": "match-park", "label": "Park", "dataset": "parks", "sizes": ["S", "M", "L"], "kind": "voronoi-point" }
+      { "group": "POI", "key": "match-park", "label": "Park", "dataset": "parks", "sizes": ["S", "M", "L"], "kind": "voronoi-point" },
+      { "group": "Natural", "key": "match-landmass", "label": "Landmass (Manhattan / Long Island / Mainland)", "dataset": "boroughs", "sizes": ["S", "M", "L"], "kind": "landmass" }
     ]
   },
   "radar": {

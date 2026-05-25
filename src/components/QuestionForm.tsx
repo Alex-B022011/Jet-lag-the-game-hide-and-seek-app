@@ -47,6 +47,13 @@ function nearestPoiTo(p: LatLng, dataset: string): { id: string; name: string | 
   return best;
 }
 
+const BOROUGH_LANDMASS_FRONT: Record<string, string> = {
+  Manhattan: "Manhattan Island",
+  Brooklyn: "Long Island",
+  Queens: "Long Island",
+  Bronx: "US Mainland",
+};
+
 function seekerBoroughName(p: LatLng): string | null {
   for (const f of BOROUGHS.features) {
     if (turf.booleanPointInPolygon([p.lng, p.lat], f as any)) {
@@ -138,6 +145,12 @@ function MatchingForm({
     if (cat.kind === "polygon") {
       const n = seekerBoroughName(seeker);
       return n ? { id: n, name: n, distMi: 0 } : null;
+    }
+    if (cat.kind === "landmass") {
+      const b = seekerBoroughName(seeker);
+      if (!b) return null;
+      const lm = BOROUGH_LANDMASS_FRONT[b] ?? null;
+      return lm ? { id: lm, name: lm, distMi: 0 } : null;
     }
     if (cat.kind === "voronoi-point" || cat.kind === "name-length") {
       return nearestPoiTo(seeker, cat.dataset);
