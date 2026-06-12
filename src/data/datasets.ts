@@ -2,6 +2,7 @@ import type { DatasetName, POICollection } from "../game/types";
 import type { Feature, FeatureCollection, LineString, MultiPolygon, Polygon } from "geojson";
 
 import boroughs from "./boroughs.json";
+import hidingZone from "./hidingZone.json";
 import airports from "./pois/airports.json";
 import hospitals from "./pois/hospitals.json";
 import libraries from "./pois/libraries.json";
@@ -21,6 +22,10 @@ export const COASTLINE = coastline as unknown as FeatureCollection<LineString, {
 export type CoastFeature = Feature<LineString, { id: string; name: string | null }>;
 
 export const BOROUGHS = boroughs as unknown as FeatureCollection<MultiPolygon | Polygon, { name: string }>;
+
+// Precomputed union of the 4 boroughs (built by scripts/simplify-data.mjs)
+// so the app never unions the borough polygons at runtime.
+export const HIDING_ZONE = hidingZone.features[0] as unknown as Feature<MultiPolygon | Polygon, { name: string }>;
 
 const POIS: Record<Exclude<DatasetName, "boroughs">, POICollection> = {
   airports: airports as unknown as POICollection,

@@ -1,7 +1,7 @@
 import * as turf from "@turf/turf";
 import type { BBox, Feature, FeatureCollection, MultiPolygon, Polygon, Point } from "geojson";
 import type { AskedQuestion, DatasetName, LatLng, POICollection, PossibleArea } from "./types";
-import { BOROUGHS, COASTLINE, getPOIs } from "../data/datasets";
+import { BOROUGHS, COASTLINE, HIDING_ZONE, getPOIs } from "../data/datasets";
 import questions from "../data/questions.json";
 
 const MILES_TO_KM = 1.609344;
@@ -27,15 +27,29 @@ const BOROUGH_LANDMASS: Record<string, string> = {
 };
 
 export function buildHidingZone(): PossibleArea {
-  // Union all 4 borough polygons into a single (multi)polygon.
-  let acc: Feature<Polygon | MultiPolygon> | null = null;
-  for (const f of BOROUGHS.features) {
-    const feat = f as Feature<Polygon | MultiPolygon>;
-    if (!acc) acc = feat;
-    else acc = (turf.union(turf.featureCollection([acc, feat])) as PossibleArea) ?? acc;
+  // Precomputed at build time by scripts/simplify-data.mjs.
+  return HIDING_ZONE as PossibleArea;
+}
+
+// Union many polygons in a single polyclip sweep instead of n incremental
+// passes — the incremental version was the main source of multi-second hangs.
+function unionAll(feats: Feature<Polygon | MultiPolygon>[]): Feature<Polygon | MultiPolygon> | null {
+  const valid = feats.filter((f) => f != null);
+  if (valid.length === 0) return null;
+  if (valid.length === 1) return valid[0];
+  return (turf.union(turf.featureCollection(valid)) as Feature<Polygon | MultiPolygon> | null) ?? valid[0];
+}
+
+// Geometry ops compound vertex count question after question; shaving ~10 m of
+// detail after each one keeps the area renderable without visible change.
+function tidy(area: PossibleArea): PossibleArea {
+  try {
+    const coords = JSON.stringify(area.geometry).length;
+    if (coords < 20000) return area;
+    return turf.simplify(area, { tolerance: 0.0001, highQuality: false, mutate: false }) as PossibleArea;
+  } catch {
+    return area;
   }
-  if (!acc) throw new Error("No boroughs loaded");
-  return acc as PossibleArea;
 }
 
 function safeIntersect(a: PossibleArea, b: Feature<Polygon | MultiPolygon>): PossibleArea {
@@ -129,10 +143,15 @@ function nearestPOI(p: LatLng, pois: POICollection): { feature: Feature<Point> |
   return { feature: best, index: bestIdx, distanceKm: bestD };
 }
 
-function voronoiClippedToZone(pois: POICollection): Feature<Polygon>[] {
+const voronoiCache = new Map<string, Feature<Polygon>[]>();
+
+function voronoiClippedToZone(pois: POICollection, cacheKey?: string): Feature<Polygon>[] {
+  if (cacheKey && voronoiCache.has(cacheKey)) return voronoiCache.get(cacheKey)!;
   const [w, s, e, n] = playingBbox();
   const result = turf.voronoi(pois as FeatureCollection<Point>, { bbox: [w, s, e, n] });
-  return (result?.features ?? []).filter((f) => f != null) as Feature<Polygon>[];
+  const cells = (result?.features ?? []) as Feature<Polygon>[];
+  if (cacheKey) voronoiCache.set(cacheKey, cells);
+  return cells;
 }
 
 function eliminateMatching(area: PossibleArea, q: Extract<AskedQuestion, { type: "matching" }>): PossibleArea {
@@ -151,14 +170,11 @@ function eliminateMatching(area: PossibleArea, q: Extract<AskedQuestion, { type:
     // seekerAnchorName carries the landmass name (e.g. "Long Island").
     // Union every borough that sits on that landmass.
     if (!q.seekerAnchorName) return area;
-    let union: Feature<Polygon | MultiPolygon> | null = null;
-    for (const f of BOROUGHS.features) {
-      const borough = (f.properties as { name?: string })?.name ?? "";
-      if (BOROUGH_LANDMASS[borough] !== q.seekerAnchorName) continue;
-      union = union
-        ? ((turf.union(turf.featureCollection([union, f as Feature<Polygon | MultiPolygon>])) as Feature<Polygon | MultiPolygon> | null) ?? union)
-        : (f as Feature<Polygon | MultiPolygon>);
-    }
+    const union = unionAll(
+      BOROUGHS.features.filter(
+        (f) => BOROUGH_LANDMASS[(f.properties as { name?: string })?.name ?? ""] === q.seekerAnchorName,
+      ) as Feature<Polygon | MultiPolygon>[],
+    );
     if (!union) return area;
     return q.answer === "yes" ? safeIntersect(area, union) : safeDifference(area, union);
   }
@@ -168,7 +184,7 @@ function eliminateMatching(area: PossibleArea, q: Extract<AskedQuestion, { type:
     if (!pois.features.length || q.seekerAnchorId == null) return area;
     const seekerIdx = pois.features.findIndex((f) => f.properties.id === q.seekerAnchorId);
     if (seekerIdx < 0) return area;
-    const cells = voronoiClippedToZone(pois);
+    const cells = voronoiClippedToZone(pois, cat.dataset);
     const seekerCell = cells[seekerIdx];
     if (!seekerCell) return area;
     return q.answer === "yes" ? safeIntersect(area, seekerCell) : safeDifference(area, seekerCell);
@@ -177,20 +193,18 @@ function eliminateMatching(area: PossibleArea, q: Extract<AskedQuestion, { type:
   if (cat.kind === "name-length") {
     // Stations matching by name length: group by name length, union Voronoi cells per group.
     const pois = getPOIs("rail-stations");
-    const cells = voronoiClippedToZone(pois);
+    const cells = voronoiClippedToZone(pois, "rail-stations");
     const seekerLen = (() => {
       const f = pois.features.find((x) => x.properties.id === q.seekerAnchorId);
       return f?.properties.name?.length ?? null;
     })();
     if (seekerLen == null) return area;
     // Union cells whose station name length matches seekerLen
-    let union: Feature<Polygon | MultiPolygon> | null = null;
-    pois.features.forEach((f, i) => {
-      if ((f.properties.name?.length ?? -1) === seekerLen && cells[i]) {
-        if (!union) union = cells[i] as Feature<Polygon>;
-        else union = (turf.union(turf.featureCollection([union, cells[i] as Feature<Polygon>])) as Feature<Polygon | MultiPolygon>) ?? union;
-      }
-    });
+    const union = unionAll(
+      pois.features
+        .map((f, i) => ((f.properties.name?.length ?? -1) === seekerLen ? cells[i] : null))
+        .filter((c): c is Feature<Polygon> => c != null),
+    );
     if (!union) return area;
     return q.answer === "yes" ? safeIntersect(area, union) : safeDifference(area, union);
   }
@@ -215,12 +229,8 @@ function eliminateMeasuring(area: PossibleArea, q: Extract<AskedQuestion, { type
     const buffered = turf.buffer(COASTLINE, radiusKm, { units: "kilometers" });
     if (!buffered) return area;
     // turf.buffer returns FeatureCollection when given one — union the parts.
-    let union: Feature<Polygon | MultiPolygon> | null = null;
-    const parts = "features" in buffered ? buffered.features : [buffered];
-    for (const part of parts) {
-      const p = part as Feature<Polygon | MultiPolygon>;
-      union = union ? ((turf.union(turf.featureCollection([union, p])) as Feature<Polygon | MultiPolygon> | null) ?? union) : p;
-    }
+    const parts = ("features" in buffered ? buffered.features : [buffered]) as Feature<Polygon | MultiPolygon>[];
+    const union = unionAll(parts);
     if (!union) return area;
     return q.answer === "closer" ? safeIntersect(area, union) : safeDifference(area, union);
   }
@@ -228,13 +238,13 @@ function eliminateMeasuring(area: PossibleArea, q: Extract<AskedQuestion, { type
   const pois = getPOIs(cat.dataset as POIDataset);
   if (!pois.features.length) return area;
 
-  // Union of circles of radius d_s around each POI = "points whose distance-to-nearest-POI ≤ d_s"
-  let union: Feature<Polygon | MultiPolygon> | null = null;
-  for (const f of pois.features) {
-    const c = turf.circle((f.geometry as Point).coordinates, radiusKm, { steps: 64, units: "kilometers" });
-    if (!union) union = c as Feature<Polygon>;
-    else union = (turf.union(turf.featureCollection([union, c])) as Feature<Polygon | MultiPolygon>) ?? union;
-  }
+  // Union of circles of radius d_s around each POI = "points whose distance-to-nearest-POI ≤ d_s".
+  // With thousands of overlapping circles the arc detail is invisible — drop it.
+  const steps = pois.features.length > 500 ? 12 : 32;
+  const circles = pois.features.map(
+    (f) => turf.circle((f.geometry as Point).coordinates, radiusKm, { steps, units: "kilometers" }) as Feature<Polygon>,
+  );
+  const union = unionAll(circles);
   if (!union) return area;
   return q.answer === "closer" ? safeIntersect(area, union) : safeDifference(area, union);
 }
@@ -287,12 +297,12 @@ function eliminatePhoto(area: PossibleArea, q: Extract<AskedQuestion, { type: "p
 // ---------- Public API ----------
 export function applyQuestion(area: PossibleArea, q: AskedQuestion): PossibleArea {
   switch (q.type) {
-    case "radar": return eliminateRadar(area, q);
-    case "thermometer": return eliminateThermometer(area, q);
-    case "matching": return eliminateMatching(area, q);
-    case "measuring": return eliminateMeasuring(area, q);
-    case "tentacle": return eliminateTentacle(area, q);
-    case "photo": return eliminatePhoto(area, q);
+    case "radar": return tidy(eliminateRadar(area, q));
+    case "thermometer": return tidy(eliminateThermometer(area, q));
+    case "matching": return tidy(eliminateMatching(area, q));
+    case "measuring": return tidy(eliminateMeasuring(area, q));
+    case "tentacle": return tidy(eliminateTentacle(area, q));
+    case "photo": return tidy(eliminatePhoto(area, q));
   }
 }
 

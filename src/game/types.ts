@@ -76,5 +76,5 @@ export type AskedQuestion =
 
 export type PossibleArea = Feature<Polygon | MultiPolygon>;
 
-export type POIFeature = Feature<Point, { id: string; name: string | null; tags: Record<string, string> }>;
+export type POIFeature = Feature<Point, { id: string; name: string | null }>;
 export type POICollection = FeatureCollection<Point, POIFeature["properties"]>;

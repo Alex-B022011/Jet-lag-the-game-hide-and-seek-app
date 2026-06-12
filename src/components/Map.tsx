@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, useMap, useMapEvents, Circle, Polyline } from "react-leaflet";
 import LassoTool from "./LassoTool";
-import * as turfMod from "@turf/turf";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as turf from "@turf/turf";
@@ -63,11 +62,11 @@ function FitOnce() {
 }
 
 export default function Map({ preview, lassoActive, onLassoComplete, onLassoCancel }: Props) {
-  void turfMod;
   const possibleArea = useGame((s) => s.possibleArea);
   const seekerPin = useGame((s) => s.seekerPin);
   const thermometerEnd = useGame((s) => s.thermometerEnd);
   const pickMode = useGame((s) => s.pickMode);
+  const historyLen = useGame((s) => s.history.length);
 
   // Compute the eliminated area = hidingZone − possibleArea
   const eliminatedArea = useMemo<Feature<Polygon | MultiPolygon> | null>(() => {
@@ -76,19 +75,25 @@ export default function Map({ preview, lassoActive, onLassoComplete, onLassoCanc
     return diff as Feature<Polygon | MultiPolygon> | null;
   }, [possibleArea]);
 
-  // Use keys so GeoJSON layers rerender on geometry change
-  const possibleKey = useMemo(() => JSON.stringify(turf.bbox(possibleArea)), [possibleArea]);
-  const eliminatedKey = useMemo(() => (eliminatedArea ? JSON.stringify(turf.bbox(eliminatedArea)) : "none"), [eliminatedArea]);
+  // Key layers by question count: a bbox-based key missed interior
+  // eliminations (bbox unchanged → layer never redrew).
+  const areaKey = historyLen;
 
   return (
     <>
     {pickMode === "thermometer-end" && (
       <div className="pickmode-hint">Tap the map to set the END pin</div>
     )}
-    <MapContainer center={NYC_CENTER} zoom={11} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+    <MapContainer
+      center={NYC_CENTER}
+      zoom={11}
+      style={{ height: "100%", width: "100%" }}
+      zoomControl={false}
+      preferCanvas
+    >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
       />
       <FitOnce />
       <MapClickHandler />
@@ -96,22 +101,22 @@ export default function Map({ preview, lassoActive, onLassoComplete, onLassoCanc
       {/* Hiding zone outline */}
       <GeoJSON
         data={BOROUGHS}
-        style={{ color: "#0b3d2e", weight: 2, fillOpacity: 0, dashArray: "4 4" }}
+        style={{ color: "#0f766e", weight: 1.5, fillOpacity: 0, dashArray: "4 4", opacity: 0.7 }}
       />
 
       {/* Possible area (green) */}
       <GeoJSON
-        key={`p-${possibleKey}`}
+        key={`p-${areaKey}`}
         data={possibleArea as any}
-        style={{ color: "#1b7a3e", weight: 1, fillColor: "#3fb96a", fillOpacity: 0.18 }}
+        style={{ color: "#34d399", weight: 1.5, fillColor: "#10b981", fillOpacity: 0.22 }}
       />
 
-      {/* Eliminated area (gray) */}
+      {/* Eliminated area (dark overlay) */}
       {eliminatedArea && (
         <GeoJSON
-          key={`e-${eliminatedKey}`}
+          key={`e-${areaKey}`}
           data={eliminatedArea as any}
-          style={{ color: "#222", weight: 0, fillColor: "#222", fillOpacity: 0.55 }}
+          style={{ color: "#0f172a", weight: 0, fillColor: "#0f172a", fillOpacity: 0.55 }}
         />
       )}
 

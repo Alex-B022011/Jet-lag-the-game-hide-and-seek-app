@@ -25,6 +25,11 @@ type GameState = {
 
 const initialArea = buildHidingZone();
 
+// Pre-question area snapshots (parallel to history, in-memory only) so undo
+// is a pop instead of replaying every question. After a page reload the stack
+// is empty and undo falls back to replayHistory.
+const areaSnapshots: PossibleArea[] = [];
+
 export const useGame = create<GameState>()(
   persist(
     (set, get) => ({
@@ -50,14 +55,20 @@ export const useGame = create<GameState>()(
         }
       },
       askQuestion: (q) => {
-        const next = applyQuestion(get().possibleArea, q);
+        const prev = get().possibleArea;
+        const next = applyQuestion(prev, q);
+        areaSnapshots.push(prev);
         set({ history: [...get().history, q], possibleArea: next });
       },
       undoLast: () => {
         const history = get().history.slice(0, -1);
-        set({ history, possibleArea: replayHistory(history) });
+        const prev = areaSnapshots.pop();
+        set({ history, possibleArea: prev ?? replayHistory(history) });
       },
-      reset: () => set({ history: [], possibleArea: buildHidingZone() }),
+      reset: () => {
+        areaSnapshots.length = 0;
+        set({ history: [], possibleArea: buildHidingZone() });
+      },
     }),
     {
       name: "jetlag-nyc-seeker-v1",
