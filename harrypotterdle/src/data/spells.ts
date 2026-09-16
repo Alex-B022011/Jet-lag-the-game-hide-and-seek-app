@@ -1,0 +1,43 @@
+import type { Spell } from "../game/types";
+
+/** Spell names and effects are factual; every `effect` line is written for this game. */
+export const SPELLS: Spell[] = [
+  { id: "alohomora", name: "Alohomora", aliases: ["Unlocking Charm"], effect: "Springs a locked door or window open.", type: "Charm", light: "None", firstBook: 1, mentions: "Used on a forbidden corridor door in the first year." },
+  { id: "wingardium-leviosa", name: "Wingardium Leviosa", aliases: ["Levitation Charm"], effect: "Lifts an object into the air and moves it about.", type: "Charm", light: "None", firstBook: 1, mentions: "The first charm taught in class, and the one that knocked out a troll." },
+  { id: "expelliarmus", name: "Expelliarmus", aliases: ["Disarming Charm"], effect: "Rips the target's wand out of their hand.", type: "Charm", light: "Scarlet", firstBook: 2, mentions: "A signature move, relied on far past the point where it was a surprise." },
+  { id: "expecto-patronum", name: "Expecto Patronum", aliases: ["Patronus Charm"], effect: "Conjures a silver guardian that drives off soul-draining creatures.", type: "Charm", light: "Silver", firstBook: 3, mentions: "Learned in private lessons to survive a lakeside attack." },
+  { id: "avada-kedavra", name: "Avada Kedavra", aliases: ["Killing Curse"], effect: "Kills instantly, with no counter-curse and no wound.", type: "Curse", light: "Green", firstBook: 4, mentions: "One of three curses that carry a life sentence." },
+  { id: "crucio", name: "Crucio", aliases: ["Cruciatus Curse"], effect: "Inflicts unbearable pain for as long as it is held.", type: "Curse", light: "None", firstBook: 4, mentions: "Drove two Aurors permanently out of their minds." },
+  { id: "imperio", name: "Imperio", aliases: ["Imperius Curse"], effect: "Places the victim under the caster's total control.", type: "Curse", light: "None", firstBook: 4, mentions: "Demonstrated on a spider in a fourth-year lesson." },
+  { id: "lumos", name: "Lumos", aliases: [], effect: "Lights the wand tip like a torch.", type: "Charm", light: "White", firstBook: 2, mentions: "The default response to any dark corridor." },
+  { id: "nox", name: "Nox", aliases: [], effect: "Puts out a lit wand tip.", type: "Charm", light: "None", firstBook: 3, mentions: "The counterpart to the wand-lighting charm." },
+  { id: "accio", name: "Accio", aliases: ["Summoning Charm"], effect: "Pulls a named object through the air to the caster.", type: "Charm", light: "None", firstBook: 4, mentions: "Practised all night to fetch a broomstick during a dragon task." },
+  { id: "riddikulus", name: "Riddikulus", aliases: [], effect: "Forces a shape-shifting fear-creature into something absurd.", type: "Charm", light: "None", firstBook: 3, mentions: "Taught with a wardrobe and a queue of nervous students." },
+  { id: "obliviate", name: "Obliviate", aliases: ["Memory Charm"], effect: "Erases specific memories from the target's mind.", type: "Charm", light: "None", firstBook: 2, mentions: "The entire basis of a fraudulent author's career." },
+  { id: "sectumsempra", name: "Sectumsempra", aliases: [], effect: "Slashes the target open as though by an invisible blade.", type: "Curse", light: "None", firstBook: 6, mentions: "Scrawled in the margin of a second-hand potions book." },
+  { id: "petrificus-totalus", name: "Petrificus Totalus", aliases: ["Full Body-Bind Curse"], effect: "Locks the target's arms and legs rigid so they topple over.", type: "Curse", light: "None", firstBook: 1, mentions: "Used on a housemate guarding the common room door." },
+  { id: "protego", name: "Protego", aliases: ["Shield Charm"], effect: "Raises an invisible barrier that bounces spells back.", type: "Charm", light: "None", firstBook: 4, mentions: "A staple of the secret defence club's curriculum." },
+  { id: "stupefy", name: "Stupefy", aliases: ["Stunning Spell"], effect: "Knocks the target unconscious where they stand.", type: "Charm", light: "Red", firstBook: 4, mentions: "Fired in volleys during every large duel in the series." },
+  { id: "reducto", name: "Reducto", aliases: ["Reductor Curse"], effect: "Blasts a solid object into pieces.", type: "Curse", light: "Blue", firstBook: 4, mentions: "Shattered a shelf of prophecy orbs during a Ministry fight." },
+  { id: "alarte-ascendare", name: "Alarte Ascendare", aliases: [], effect: "Shoots the target high into the air.", type: "Charm", light: "None", firstBook: 2, mentions: "Used on a snake during a disastrous duelling club." },
+  { id: "engorgio", name: "Engorgio", aliases: ["Engorgement Charm"], effect: "Swells the target to many times its normal size.", type: "Charm", light: "None", firstBook: 4, mentions: "Applied to a spider in a classroom demonstration." },
+  { id: "reparo", name: "Reparo", aliases: ["Mending Charm"], effect: "Puts a broken object back together.", type: "Charm", light: "None", firstBook: 2, mentions: "Fixes glasses, and one famously unfixable wand." },
+  { id: "aguamenti", name: "Aguamenti", aliases: [], effect: "Produces a jet of clean water from the wand tip.", type: "Charm", light: "None", firstBook: 6, mentions: "Used to fight an inferi attack in a cave." },
+  { id: "incendio", name: "Incendio", aliases: [], effect: "Sets a controlled fire.", type: "Charm", light: "Orange", firstBook: 4, mentions: "Lights a fireplace in a house with no matches." },
+  { id: "morsmordre", name: "Morsmordre", aliases: [], effect: "Casts a colossal skull-and-serpent mark into the sky.", type: "Curse", light: "Green", firstBook: 4, mentions: "Fired over a campsite after a World Cup final." },
+  { id: "finite-incantatem", name: "Finite Incantatem", aliases: ["Finite"], effect: "Cancels spells currently in effect.", type: "Counter-spell", light: "None", firstBook: 2, mentions: "Shouted to break up a chaotic duelling club." },
+  { id: "episkey", name: "Episkey", aliases: [], effect: "Heals a small injury such as a broken nose.", type: "Healing", light: "None", firstBook: 6, mentions: "Used on a nose broken by a well-aimed boot." },
+  { id: "levicorpus", name: "Levicorpus", aliases: [], effect: "Hoists the victim into the air by one ankle.", type: "Jinx", light: "None", firstBook: 6, mentions: "A schoolyard humiliation revisited in a borrowed memory." },
+  { id: "muffliato", name: "Muffliato", aliases: [], effect: "Fills nearby ears with an unidentifiable buzzing.", type: "Charm", light: "None", firstBook: 6, mentions: "Invented in the margins of a textbook to hide conversations." },
+  { id: "tarantallegra", name: "Tarantallegra", aliases: ["Dancing Feet Spell"], effect: "Forces the victim's legs into an uncontrollable dance.", type: "Jinx", light: "None", firstBook: 2, mentions: "One of the few spells that landed at the duelling club." },
+  { id: "rictusempra", name: "Rictusempra", aliases: ["Tickling Charm"], effect: "Doubles the target over with helpless laughter.", type: "Charm", light: "Silver", firstBook: 2, mentions: "An opening move in a schoolboy duel." },
+  { id: "serpensortia", name: "Serpensortia", aliases: [], effect: "Conjures a live snake from the wand tip.", type: "Transfiguration", light: "None", firstBook: 2, mentions: "Produced a snake that revealed a rare inherited ability." },
+  { id: "priori-incantatem", name: "Priori Incantatem", aliases: [], effect: "Replays the last spells a wand performed.", type: "Charm", light: "None", firstBook: 4, mentions: "Used to investigate who conjured a mark over a campsite." },
+  { id: "confundo", name: "Confundo", aliases: ["Confundus Charm"], effect: "Leaves the target muddled and easily misled.", type: "Charm", light: "None", firstBook: 3, mentions: "Blamed for a suspiciously good Quidditch try-out." },
+  { id: "silencio", name: "Silencio", aliases: ["Silencing Charm"], effect: "Robs the target of its voice.", type: "Charm", light: "None", firstBook: 5, mentions: "Practised on croaking ravens and bellowing frogs." },
+  { id: "geminio", name: "Geminio", aliases: ["Doubling Charm"], effect: "Creates worthless copies of whatever it touches.", type: "Charm", light: "None", firstBook: 7, mentions: "Turned a vault's treasure into a scalding flood of duplicates." },
+  { id: "portus", name: "Portus", aliases: [], effect: "Turns an ordinary object into a transport device.", type: "Charm", light: "Blue", firstBook: 5, mentions: "Applied to a blackened old kettle in a headmaster's office." },
+  { id: "homenum-revelio", name: "Homenum Revelio", aliases: [], effect: "Reveals the presence of hidden people nearby.", type: "Charm", light: "None", firstBook: 7, mentions: "Cast on entering an abandoned townhouse." },
+];
+
+export const SPELLS_BY_ID = new Map(SPELLS.map((s) => [s.id, s]));
