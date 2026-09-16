@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1424">
+<title>Wizardle — daily &amp; unlimited guessing game</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1424'/%3E%3Cpath d='M16 5l3.1 8.9L28 17l-8.9 3.1L16 29l-3.1-8.9L4 17l8.9-3.1z' fill='%23c9a227'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#0d1424; --ink-2:#131d33; --parchment:#f7f0dd; --parchment-2:#ece1c4;
+  --gold:#c9a227; --gold-soft:#e0c159; --text:#f2ecdc; --text-dim:#b9c2d6;
+  --hit:#2f7d43; --close:#c9922a; --miss:#9c2b2b;
+  --radius:14px; --edge:rgba(201,162,39,.28);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  color:var(--text);
+  background:
+    radial-gradient(1100px 700px at 50% -10%,#1d3350 0,transparent 60%),
+    radial-gradient(800px 500px at 10% 100%,#16283f 0,transparent 60%),
+    var(--ink);
+  background-attachment:fixed;
+  -webkit-text-size-adjust:100%;
+}
+.app{max-width:1080px;margin:0 auto;padding:24px 16px 72px}
+.masthead{text-align:center}
+h1.wordmark{
+  margin:0;font-size:clamp(2.1rem,8vw,3.6rem);line-height:1.05;
+  text-shadow:0 2px 0 rgba(0,0,0,.45),0 0 26px rgba(201,162,39,.18);
+}
+.wordmark .a{font-weight:700}
+.wordmark .b{font-weight:400;color:var(--gold-soft)}
+.tagline{margin:6px 0 0;color:var(--text-dim)}
+.toolbar{display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.tool{
+  width:44px;height:44px;display:grid;place-items:center;border-radius:50%;
+  border:1px solid var(--edge);background:rgba(255,255,255,.04);color:var(--text);
+  cursor:pointer;transition:background .15s,transform .15s;
+}
+.tool:hover{background:rgba(201,162,39,.16);transform:translateY(-1px)}
+.tool[aria-pressed=true]{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.tool svg{width:22px;height:22px}
+.tool.house{width:auto;padding:0 14px;border-radius:22px;font-size:.78rem;font-weight:700;letter-spacing:.04em;font-family:inherit}
+.modes{display:flex;justify-content:center;gap:clamp(8px,3vw,22px);margin:22px 0 18px;flex-wrap:wrap}
+.mode{background:none;border:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text);cursor:pointer;font-family:inherit}
+.disc{
+  width:clamp(54px,15vw,74px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;
+  background:var(--parchment);color:var(--ink);border:2px solid transparent;position:relative;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .15s,border-color .15s;
+}
+.mode:hover .disc{transform:translateY(-2px)}
+.mode[aria-current=true] .disc{background:var(--parchment-2);border-color:var(--gold)}
+.disc svg{width:56%;height:56%}
+.mode-label{font-size:.92rem}
+.done{
+  position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;
+  background:var(--hit);color:#fff;display:grid;place-items:center;font-size:.75rem;font-weight:700;
+  border:2px solid var(--ink);
+}
+.panel{background:rgba(13,20,36,.92);border:1px solid var(--edge);border-radius:var(--radius);padding:16px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.panel-head h2{margin:0;font-size:1.22rem}
+.prompt{margin:6px 0 0;text-align:center;font-size:1.05rem}
+.streak{display:inline-flex;align-items:center;gap:4px;font-weight:700;color:var(--text-dim)}
+.streak.lit{color:var(--gold-soft)}
+.streak svg{width:24px;height:24px}
+.kinds{display:flex;gap:6px;margin:14px auto 0;padding:4px;border:1px solid var(--edge);border-radius:999px;background:rgba(255,255,255,.03);width:fit-content}
+.kind{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:9px 18px;font:inherit;font-size:.95rem;background:transparent;color:var(--text-dim);cursor:pointer}
+.kind svg{width:18px;height:18px}
+.kind[aria-pressed=true]{background:var(--gold);color:var(--ink);font-weight:700}
+.hints{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.hint{
+  flex:1 1 160px;min-height:92px;border:1px solid var(--edge);border-radius:10px;padding:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  text-align:center;background:rgba(255,255,255,.03);color:var(--text-dim);font-size:.86rem;
+}
+.hint .glyph{font-size:1.5rem;line-height:1}
+.hint.on{border-color:var(--gold);color:var(--text);background:rgba(201,162,39,.1)}
+.hint.on .glyph{color:var(--gold-soft)}
+.hint .val{font-weight:700}
+.clue{margin-top:16px;background:var(--parchment);color:#221c10;border:3px double var(--gold);border-radius:var(--radius);padding:18px}
+.clue .kicker{margin:0 0 8px;text-align:center;color:#5a4a29;font-size:.95rem}
+.clue .body{margin:0;text-align:justify;hyphens:auto;font-size:clamp(1rem,2.6vw,1.15rem);line-height:1.55}
+.guessbar{margin-top:16px;position:relative}
+.guessbar input{
+  width:100%;padding:16px 52px 16px 18px;font:inherit;font-size:1.05rem;color:#221c10;
+  background:var(--parchment);border:1px solid var(--gold);border-radius:10px;
+}
+.guessbar input::placeholder{color:#8a7a5c}
+.guessbar input:disabled{opacity:.55}
+.submit{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:8px;background:transparent;color:#6b5a34;cursor:pointer;font-size:1.2rem}
+.suggestions{
+  position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);margin:0;padding:4px;list-style:none;
+  max-height:280px;overflow-y:auto;background:var(--parchment);color:#221c10;
+  border:1px solid var(--gold);border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.45);
+}
+.suggestions button{display:block;width:100%;text-align:left;padding:11px 12px;border:0;border-radius:7px;background:transparent;color:inherit;font:inherit;font-size:1rem;cursor:pointer}
+.suggestions button:hover,.suggestions li.active button{background:var(--parchment-2)}
+.alias{color:#6b5a34;font-size:.86rem}
+.notice{margin:10px 0 0;text-align:center;color:var(--gold-soft);font-size:.92rem;min-height:1.2em}
+.table-wrap{margin-top:20px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.guesses{border-collapse:separate;border-spacing:6px;width:100%;min-width:640px}
+table.guesses th{font-weight:400;font-size:.95rem;padding:6px 4px 10px;border-bottom:2px solid var(--gold);white-space:nowrap}
+table.guesses td{padding:0}
+.cell{
+  border-radius:8px;min-height:74px;padding:8px 6px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;text-align:center;font-size:.86rem;line-height:1.25;
+  animation:flip .4s ease both;
+}
+.cell.hit{background:var(--hit)}
+.cell.close{background:var(--close);color:#241c06}
+.cell.miss{background:var(--miss)}
+.cell.name{background:rgba(255,255,255,.07);font-size:.95rem;font-weight:700}
+.arrow{font-size:1.35rem;line-height:1}
+@keyframes flip{from{transform:rotateX(-90deg);opacity:0}to{transform:rotateX(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.cell{animation:none}}
+.legend{display:flex;gap:14px;justify-content:center;margin-top:12px;flex-wrap:wrap;color:var(--text-dim);font-size:.85rem}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:14px;height:14px;border-radius:4px;display:inline-block}
+.end{margin-top:18px;text-align:center;border:1px solid var(--gold);border-radius:var(--radius);padding:22px 16px;background:linear-gradient(180deg,rgba(201,162,39,.16),rgba(13,20,36,.9))}
+.end h2{margin:0 0 10px;font-size:clamp(1.6rem,6vw,2.3rem);color:var(--gold-soft)}
+.answer{font-size:clamp(1.4rem,5vw,2rem);text-decoration:underline;text-underline-offset:6px;margin:0}
+.end .label{color:var(--text-dim);margin:14px 0 2px}
+.countdown{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.25rem;margin:0}
+.portrait{
+  width:min(220px,60vw);aspect-ratio:3/4;margin:0 auto 12px;border:4px solid var(--parchment);
+  border-radius:6px;background:linear-gradient(160deg,#24344f,#16233a);display:grid;place-items:center;
+  color:var(--gold-soft);font-size:3rem;letter-spacing:.06em;box-shadow:0 12px 30px rgba(0,0,0,.5);
+}
+.portrait img{width:100%;height:100%;object-fit:cover}
+.btn{font:inherit;font-size:1rem;padding:12px 22px;border-radius:999px;cursor:pointer;border:1px solid var(--gold);background:var(--gold);color:var(--ink);font-weight:700}
+.btn.ghost{background:transparent;color:var(--gold-soft);font-weight:400}
+.actions{margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.next-mode{margin-top:16px}
+.next-mode .disc{width:58px;margin:0 auto}
+.yesterday{margin-top:18px;text-align:center;color:var(--text-dim);font-size:.95rem}
+.yesterday b{color:var(--gold-soft);font-style:italic}
+.backdrop{position:fixed;inset:0;z-index:50;background:rgba(4,8,16,.72);display:grid;place-items:center;padding:18px}
+.modal{width:min(520px,100%);max-height:86vh;overflow-y:auto;background:var(--ink-2);border:1px solid var(--gold);border-radius:var(--radius);padding:20px}
+.modal h2{margin-top:0;color:var(--gold-soft)}
+.modal p,.modal li,.modal td{color:var(--text-dim);line-height:1.55}
+.modal-close{float:right;border:0;background:transparent;color:var(--text-dim);font-size:1.5rem;cursor:pointer;line-height:1}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:12px 0 18px}
+.statbox{background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:10px;padding:12px;text-align:center}
+.statbox b{display:block;font-size:1.6rem;color:var(--gold-soft)}
+.statbox span{font-size:.8rem;color:var(--text-dim)}
+.houses{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.house-btn{font:inherit;padding:14px;border-radius:10px;cursor:pointer;border:2px solid var(--edge);background:rgba(255,255,255,.04);color:var(--text)}
+.house-btn[aria-pressed=true]{border-color:var(--gold);background:rgba(201,162,39,.16)}
+.hidden{display:none !important}
+@media(max-width:560px){
+  table.guesses{min-width:560px;border-spacing:4px}
+  .cell{min-height:62px;font-size:.76rem}
+  .panel{padding:13px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <h1 class="wordmark"><span class="a">Wiza</span><span class="b">rdle</span></h1>
+    <p class="tagline">Guess the daily character, spell, and place!</p>
+    <nav class="toolbar">
+      <button class="tool house" id="btn-house" title="Choose your house"></button>
+      <button class="tool" id="btn-spoiler" title="Hide yesterday's answer"></button>
+      <button class="tool" id="btn-stats" title="Statistics"></button>
+      <button class="tool" id="btn-info" title="How to play"></button>
+    </nav>
+  </header>
+
+  <nav class="modes" id="modes" aria-label="Game modes"></nav>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="mode-heading"></h2>
+      <span class="streak" id="streak" title="Current streak"></span>
+    </div>
+    <p class="prompt" id="mode-prompt"></p>
+    <div class="kinds" role="group" aria-label="Play mode">
+      <button class="kind" id="kind-daily">Daily</button>
+      <button class="kind" id="kind-unlimited">Unlimited</button>
+    </div>
+    <div class="hints" id="hints"></div>
+  </section>
+
+  <section class="clue hidden" id="clue">
+    <p class="kicker" id="clue-kicker"></p>
+    <p class="body" id="clue-body"></p>
+  </section>
+
+  <div class="guessbar">
+    <input type="text" id="guess" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="submit" id="submit" aria-label="Submit guess">&#8629;</button>
+    <ul class="suggestions hidden" id="suggestions" role="listbox"></ul>
+  </div>
+  <p class="notice" id="notice" role="status"></p>
+
+  <p style="text-align:center" id="giveup-wrap" class="hidden">
+    <button class="btn ghost" id="giveup">Give up and reveal</button>
+  </p>
+
+  <div id="end"></div>
+  <div id="table"></div>
+  <p class="yesterday hidden" id="yesterday"></p>
+</div>
+<div id="dialog"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Data
+   All clue text below is original writing for this game. The
+   Quote-mode lines are invented to fit a speaker, not quoted.
+   Attribute values (house, species, patronus, etc.) are facts.
+   ============================================================ */
+
+/**
+ * Attribute data is factual (house, species, patronus, blood status, etc.).
+ * Every `description` is original clue text written for this game — no passages
+ * are copied from the books or films. Portraits are intentionally absent; drop
+ * your own licensed art into public/portraits/ and set `image` to use it.
+ */
+const CHARACTERS = [
+    {
+        id: "harry-potter",
+        name: "Harry Potter",
+        aliases: ["The Boy Who Lived", "The Chosen One"],
+        gender: "Male", blood: "Half-blood", born: 1980, house: "Gryffindor",
+        species: "Human", patronus: "Stag",
+        affiliations: ["Hogwarts", "Dumbledore's Army", "Order of the Phoenix", "Ministry of Magic"],
+        firstBook: 1, alive: true, occupation: "Auror",
+        description: "Orphaned as a baby and raised by relatives who resented him, this student arrived at school already famous for something he could not remember. Carries a lightning-shaped scar and an unusual talent for the Patronus Charm.",
+    },
+    {
+        id: "hermione-granger",
+        name: "Hermione Granger",
+        aliases: ["Hermione Jean Granger"],
+        gender: "Female", blood: "Muggle-born", born: 1979, house: "Gryffindor",
+        species: "Human", patronus: "Otter",
+        affiliations: ["Hogwarts", "Slug Club", "S.P.E.W.", "Dumbledore's Army", "Order of the Phoenix", "Ministry of Magic"],
+        firstBook: 1, alive: true, occupation: "Ministry official",
+        description: "The first in a non-magical family to receive a letter, this student read the entire curriculum before term began. Founded a campaign for the rights of house-elves that almost nobody joined.",
+    },
+    {
+        id: "ron-weasley",
+        name: "Ron Weasley",
+        aliases: ["Ronald Weasley", "Ronald Bilius Weasley"],
+        gender: "Male", blood: "Pure-blood", born: 1980, house: "Gryffindor",
+        species: "Human", patronus: "Jack Russell terrier",
+        affiliations: ["Hogwarts", "Dumbledore's Army", "Order of the Phoenix", "Ministry of Magic"],
+        firstBook: 1, alive: true, occupation: "Auror, later shopkeeper",
+        description: "Sixth son in a large red-haired family, forever inheriting his brothers' cast-offs. Plays a formidable game of wizard's chess and is deeply afraid of spiders.",
+    },
+    {
+        id: "albus-dumbledore",
+        name: "Albus Dumbledore",
+        aliases: ["Albus Percival Wulfric Brian Dumbledore", "Professor Dumbledore"],
+        gender: "Male", blood: "Half-blood", born: 1881, house: "Gryffindor",
+        species: "Human", patronus: "Phoenix",
+        affiliations: ["Hogwarts", "Order of the Phoenix", "Ministry of Magic"],
+        firstBook: 1, alive: false, occupation: "Headmaster",
+        description: "A headmaster with a taste for sweets and misdirection, famous for defeating a dark wizard in a legendary duel. Kept more secrets than he shared, including several about himself.",
+    },
+    {
+        id: "severus-snape",
+        name: "Severus Snape",
+        aliases: ["Professor Snape", "The Half-Blood Prince"],
+        gender: "Male", blood: "Half-blood", born: 1960, house: "Slytherin",
+        species: "Human", patronus: "Doe",
+        affiliations: ["Hogwarts", "Death Eaters", "Order of the Phoenix", "Slug Club"],
+        firstBook: 1, alive: false, occupation: "Potions master, later Headmaster",
+        description: "A brilliant potioneer who annotated his schoolbooks with improvements on the printed instructions. Spent decades playing two sides, and the shape of his Patronus gave away which one he truly served.",
+    },
+    {
+        id: "rubeus-hagrid",
+        name: "Rubeus Hagrid",
+        aliases: ["Hagrid"],
+        gender: "Male", blood: "Half-blood", born: 1928, house: "Gryffindor",
+        species: "Half-giant", patronus: "None",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Gamekeeper and Care of Magical Creatures teacher",
+        description: "Expelled as a student but kept on as staff, this enormous, soft-hearted groundskeeper keeps adopting creatures that everyone agrees should not be adopted.",
+    },
+    {
+        id: "draco-malfoy",
+        name: "Draco Malfoy",
+        aliases: ["Draco Lucius Malfoy"],
+        gender: "Male", blood: "Pure-blood", born: 1980, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts", "Death Eaters", "Inquisitorial Squad", "Slug Club"],
+        firstBook: 1, alive: true, occupation: "None",
+        description: "Heir to an old and wealthy family, this student made an enemy on the first train ride and never let it go. Given a task in sixth year that he lacked the stomach to finish.",
+    },
+    {
+        id: "voldemort",
+        name: "Lord Voldemort",
+        aliases: ["Tom Riddle", "Tom Marvolo Riddle", "You-Know-Who", "He Who Must Not Be Named", "The Dark Lord"],
+        gender: "Male", blood: "Half-blood", born: 1926, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Death Eaters", "Hogwarts"],
+        firstBook: 1, alive: false, occupation: "Dark wizard",
+        description: "Born in an orphanage to a witch who died in childbirth, this wizard split his soul repeatedly in pursuit of immortality and abandoned his birth name along the way.",
+    },
+    {
+        id: "minerva-mcgonagall",
+        name: "Minerva McGonagall",
+        aliases: ["Professor McGonagall"],
+        gender: "Female", blood: "Half-blood", born: 1935, house: "Gryffindor",
+        species: "Human", patronus: "Cat",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Transfiguration teacher, later Headmistress",
+        description: "A strict head of house and registered Animagus whose animal form has distinctive markings around the eyes. Sorted every new student for decades.",
+    },
+    {
+        id: "sirius-black",
+        name: "Sirius Black",
+        aliases: ["Padfoot", "Snuffles"],
+        gender: "Male", blood: "Pure-blood", born: 1959, house: "Gryffindor",
+        species: "Human", patronus: "Dog",
+        affiliations: ["Order of the Phoenix", "Hogwarts"],
+        firstBook: 3, alive: false, occupation: "None",
+        description: "Disowned by his own family for refusing their politics, he spent twelve years imprisoned for a massacre he did not commit, then escaped as a large black dog.",
+    },
+    {
+        id: "remus-lupin",
+        name: "Remus Lupin",
+        aliases: ["Moony", "Professor Lupin"],
+        gender: "Male", blood: "Half-blood", born: 1960, house: "Gryffindor",
+        species: "Werewolf", patronus: "Wolf",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 3, alive: false, occupation: "Defence Against the Dark Arts teacher",
+        description: "A shabby, kind teacher who kept chocolate in his pockets and vanished from the castle once a month. Taught a difficult defensive charm to a student in a private lesson.",
+    },
+    {
+        id: "ginny-weasley",
+        name: "Ginny Weasley",
+        aliases: ["Ginevra Weasley", "Ginevra Molly Weasley"],
+        gender: "Female", blood: "Pure-blood", born: 1981, house: "Gryffindor",
+        species: "Human", patronus: "Horse",
+        affiliations: ["Hogwarts", "Dumbledore's Army", "Slug Club", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Professional Quidditch player, later sports journalist",
+        description: "The youngest of seven and the first girl in generations. Wrote into an enchanted diary in her first year with consequences that nearly killed her, and grew up to be a fearsome Chaser.",
+    },
+    {
+        id: "neville-longbottom",
+        name: "Neville Longbottom",
+        aliases: ["Neville"],
+        gender: "Male", blood: "Pure-blood", born: 1980, house: "Gryffindor",
+        species: "Human", patronus: "Non-corporeal",
+        affiliations: ["Hogwarts", "Dumbledore's Army"],
+        firstBook: 1, alive: true, occupation: "Herbology teacher",
+        description: "A forgetful, nervous boy raised by his grandmother, who came into his own with plants and, eventually, with a sword.",
+    },
+    {
+        id: "luna-lovegood",
+        name: "Luna Lovegood",
+        aliases: ["Loony Lovegood"],
+        gender: "Female", blood: "Pure-blood", born: 1981, house: "Ravenclaw",
+        species: "Human", patronus: "Hare",
+        affiliations: ["Hogwarts", "Dumbledore's Army"],
+        firstBook: 5, alive: true, occupation: "Magizoologist",
+        description: "Daughter of a fringe magazine editor, she wears radish earrings, believes in creatures nobody else can see, and is unbothered by what anyone thinks of her.",
+    },
+    {
+        id: "fred-weasley",
+        name: "Fred Weasley",
+        aliases: ["Fred"],
+        gender: "Male", blood: "Pure-blood", born: 1978, house: "Gryffindor",
+        species: "Human", patronus: "Magpie",
+        affiliations: ["Hogwarts", "Dumbledore's Army", "Order of the Phoenix"],
+        firstBook: 1, alive: false, occupation: "Joke shop owner",
+        description: "One of a pair of identical pranksters who left school by flying out of it, having first turned a corridor into a swamp. Died during the final battle.",
+    },
+    {
+        id: "george-weasley",
+        name: "George Weasley",
+        aliases: ["George"],
+        gender: "Male", blood: "Pure-blood", born: 1978, house: "Gryffindor",
+        species: "Human", patronus: "Magpie",
+        affiliations: ["Hogwarts", "Dumbledore's Army", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Joke shop owner",
+        description: "The surviving half of a pair of identical pranksters, who lost an ear to a curse during an aerial escape and immediately made a pun about it.",
+    },
+    {
+        id: "molly-weasley",
+        name: "Molly Weasley",
+        aliases: ["Mrs Weasley", "Molly Prewett"],
+        gender: "Female", blood: "Pure-blood", born: 1949, house: "Gryffindor",
+        species: "Human", patronus: "Otter",
+        affiliations: ["Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Homemaker",
+        description: "A fiercely protective mother of seven who sends Howlers when provoked and duelled a notorious Death Eater to defend her daughter.",
+    },
+    {
+        id: "arthur-weasley",
+        name: "Arthur Weasley",
+        aliases: ["Mr Weasley"],
+        gender: "Male", blood: "Pure-blood", born: 1950, house: "Gryffindor",
+        species: "Human", patronus: "Weasel",
+        affiliations: ["Ministry of Magic", "Order of the Phoenix"],
+        firstBook: 2, alive: true, occupation: "Ministry official",
+        description: "A Ministry employee obsessed with non-magical gadgets, who enchanted a car in direct violation of a law he himself helped write.",
+    },
+    {
+        id: "bellatrix-lestrange",
+        name: "Bellatrix Lestrange",
+        aliases: ["Bellatrix Black", "Bella"],
+        gender: "Female", blood: "Pure-blood", born: 1951, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Death Eaters"],
+        firstBook: 4, alive: false, occupation: "Death Eater",
+        description: "The Dark Lord's most fanatical lieutenant, who tortured a pair of Aurors into permanent madness and was killed by an angry mother.",
+    },
+    {
+        id: "lucius-malfoy",
+        name: "Lucius Malfoy",
+        aliases: ["Mr Malfoy"],
+        gender: "Male", blood: "Pure-blood", born: 1954, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Death Eaters", "Ministry of Magic", "Hogwarts"],
+        firstBook: 2, alive: true, occupation: "School governor",
+        description: "A wealthy, silver-haired aristocrat with a snake-headed cane, who slipped a cursed object into a schoolgirl's cauldron and lost a house-elf for his trouble.",
+    },
+    {
+        id: "dolores-umbridge",
+        name: "Dolores Umbridge",
+        aliases: ["Professor Umbridge", "Dolores Jane Umbridge"],
+        gender: "Female", blood: "Half-blood", born: 1961, house: "Slytherin",
+        species: "Human", patronus: "Cat",
+        affiliations: ["Ministry of Magic", "Hogwarts", "Inquisitorial Squad"],
+        firstBook: 5, alive: true, occupation: "Ministry official, High Inquisitor",
+        description: "A Ministry appointee in relentless pink whose office was covered in decorative kitten plates, and whose detentions involved a very unpleasant quill.",
+    },
+    {
+        id: "cedric-diggory",
+        name: "Cedric Diggory",
+        aliases: ["Cedric"],
+        gender: "Male", blood: "Half-blood", born: 1977, house: "Hufflepuff",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts"],
+        firstBook: 3, alive: false, occupation: "Student",
+        description: "A well-liked prefect and Quidditch captain, chosen as his school's champion in a dangerous tournament, and killed on the spot in a graveyard.",
+    },
+    {
+        id: "cho-chang",
+        name: "Cho Chang",
+        aliases: ["Cho"],
+        gender: "Female", blood: "Half-blood", born: 1979, house: "Ravenclaw",
+        species: "Human", patronus: "Swan",
+        affiliations: ["Hogwarts", "Dumbledore's Army"],
+        firstBook: 3, alive: true, occupation: "Student",
+        description: "A Seeker a year above the protagonist, grieving a boyfriend's death, and briefly the subject of an extremely awkward first kiss.",
+    },
+    {
+        id: "nymphadora-tonks",
+        name: "Nymphadora Tonks",
+        aliases: ["Tonks", "Dora"],
+        gender: "Female", blood: "Half-blood", born: 1973, house: "Hufflepuff",
+        species: "Metamorphmagus", patronus: "Wolf",
+        affiliations: ["Order of the Phoenix", "Ministry of Magic"],
+        firstBook: 5, alive: false, occupation: "Auror",
+        description: "An Auror who can change her appearance at will, usually opting for brightly coloured hair, and who hates being called by her first name.",
+    },
+    {
+        id: "alastor-moody",
+        name: "Alastor Moody",
+        aliases: ["Mad-Eye Moody", "Mad-Eye"],
+        gender: "Male", blood: "Pure-blood", born: 1930, house: "Gryffindor",
+        species: "Human", patronus: "None",
+        affiliations: ["Ministry of Magic", "Order of the Phoenix", "Hogwarts"],
+        firstBook: 4, alive: false, occupation: "Auror",
+        description: "A scarred, paranoid veteran Auror with a wooden leg and a rolling magical eye, who was impersonated for an entire school year while locked in his own trunk.",
+    },
+    {
+        id: "sybill-trelawney",
+        name: "Sybill Trelawney",
+        aliases: ["Professor Trelawney"],
+        gender: "Female", blood: "Half-blood", born: 1962, house: "Ravenclaw",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 3, alive: true, occupation: "Divination teacher",
+        description: "A bespectacled, shawl-draped fraud who predicts a student's death every year, and who has made exactly two real prophecies without remembering either.",
+    },
+    {
+        id: "filius-flitwick",
+        name: "Filius Flitwick",
+        aliases: ["Professor Flitwick"],
+        gender: "Male", blood: "Half-blood", born: 1930, house: "Ravenclaw",
+        species: "Part-goblin", patronus: "None",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Charms teacher",
+        description: "A tiny duelling champion who stands on a stack of books to teach, and who takes enormous pleasure in a well-executed levitation.",
+    },
+    {
+        id: "pomona-sprout",
+        name: "Pomona Sprout",
+        aliases: ["Professor Sprout"],
+        gender: "Female", blood: "Unknown", born: 1931, house: "Hufflepuff",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Herbology teacher",
+        description: "A cheerful, earth-covered head of house who runs the greenhouses and supplied the screaming plants used to defend the castle.",
+    },
+    {
+        id: "horace-slughorn",
+        name: "Horace Slughorn",
+        aliases: ["Professor Slughorn"],
+        gender: "Male", blood: "Pure-blood", born: 1883, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts", "Slug Club", "Order of the Phoenix"],
+        firstBook: 6, alive: true, occupation: "Potions master",
+        description: "A collector of promising students who hosts exclusive dinner parties, and who spent decades hiding a memory he was deeply ashamed of.",
+    },
+    {
+        id: "dobby",
+        name: "Dobby",
+        aliases: [],
+        gender: "Male", blood: "Unknown", born: 1968, house: "None",
+        species: "House-elf", patronus: "None",
+        affiliations: ["Hogwarts"],
+        firstBook: 2, alive: false, occupation: "House-elf",
+        description: "An enslaved servant of a wealthy family who was freed by a sock, then took paid work purely out of preference and died rescuing prisoners.",
+    },
+    {
+        id: "kreacher",
+        name: "Kreacher",
+        aliases: [],
+        gender: "Male", blood: "Unknown", born: null, house: "None",
+        species: "House-elf", patronus: "None",
+        affiliations: ["Order of the Phoenix"],
+        firstBook: 5, alive: true, occupation: "House-elf",
+        description: "A bitter, muttering servant of a decaying townhouse who despised his new master until he was given a locket and a kind word.",
+    },
+    {
+        id: "lily-potter",
+        name: "Lily Potter",
+        aliases: ["Lily Evans", "Lily J. Potter"],
+        gender: "Female", blood: "Muggle-born", born: 1960, house: "Gryffindor",
+        species: "Human", patronus: "Doe",
+        affiliations: ["Hogwarts", "Order of the Phoenix", "Slug Club"],
+        firstBook: 1, alive: false, occupation: "None",
+        description: "A gifted charms student from a non-magical family whose childhood friendship soured over blood politics, and whose death left a protection nobody could break.",
+    },
+    {
+        id: "james-potter",
+        name: "James Potter",
+        aliases: ["Prongs", "James Potter I"],
+        gender: "Male", blood: "Pure-blood", born: 1960, house: "Gryffindor",
+        species: "Human", patronus: "Stag",
+        affiliations: ["Hogwarts", "Order of the Phoenix"],
+        firstBook: 1, alive: false, occupation: "None",
+        description: "An arrogant, talented Chaser and illegal Animagus who bullied a classmate at school, grew out of it, and died buying his family a few seconds.",
+    },
+    {
+        id: "peter-pettigrew",
+        name: "Peter Pettigrew",
+        aliases: ["Wormtail", "Scabbers"],
+        gender: "Male", blood: "Half-blood", born: 1960, house: "Gryffindor",
+        species: "Human", patronus: "None",
+        affiliations: ["Death Eaters", "Order of the Phoenix", "Hogwarts"],
+        firstBook: 1, alive: false, occupation: "Death Eater",
+        description: "Faked his own death, framed his best friend, and spent twelve years as a family's pet rat with a missing toe.",
+    },
+    {
+        id: "fleur-delacour",
+        name: "Fleur Delacour",
+        aliases: ["Fleur", "Fleur Isabelle Delacour"],
+        gender: "Female", blood: "Unknown", born: 1977, house: "None",
+        species: "Part-veela", patronus: "None",
+        affiliations: ["Order of the Phoenix"],
+        firstBook: 4, alive: true, occupation: "Triwizard champion, later Gringotts employee",
+        description: "A silver-haired champion from a French school whose inherited allure turned heads everywhere she went, and who married a scarred curse-breaker without hesitation.",
+    },
+    {
+        id: "viktor-krum",
+        name: "Viktor Krum",
+        aliases: ["Krum"],
+        gender: "Male", blood: "Pure-blood", born: 1976, house: "None",
+        species: "Human", patronus: "None",
+        affiliations: ["Slug Club"],
+        firstBook: 4, alive: true, occupation: "Professional Quidditch player",
+        description: "A world-famous international Seeker and surly visiting champion, who surprised everyone by asking the school's most studious girl to a dance.",
+    },
+    {
+        id: "olympe-maxime",
+        name: "Olympe Maxime",
+        aliases: ["Madame Maxime"],
+        gender: "Female", blood: "Half-blood", born: null, house: "None",
+        species: "Half-giant", patronus: "None",
+        affiliations: ["Order of the Phoenix"],
+        firstBook: 4, alive: true, occupation: "Headmistress of Beauxbatons",
+        description: "The towering, elegant headmistress of a French school, who insisted she was merely big-boned and travelled by a carriage drawn by winged horses.",
+    },
+    {
+        id: "gilderoy-lockhart",
+        name: "Gilderoy Lockhart",
+        aliases: ["Professor Lockhart"],
+        gender: "Male", blood: "Half-blood", born: 1964, house: "Ravenclaw",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts", "Ministry of Magic"],
+        firstBook: 2, alive: true, occupation: "Author, Defence teacher",
+        description: "A best-selling author whose entire career was built on Memory Charms, and who lost his own memory to a backfiring wand held together with tape.",
+    },
+    {
+        id: "bill-weasley",
+        name: "Bill Weasley",
+        aliases: ["William Weasley", "Bill"],
+        gender: "Male", blood: "Pure-blood", born: 1970, house: "Gryffindor",
+        species: "Human", patronus: "None",
+        affiliations: ["Order of the Phoenix", "Hogwarts"],
+        firstBook: 4, alive: true, occupation: "Curse-breaker",
+        description: "The eldest brother, with long hair and a fang earring, who broke curses for a bank in Egypt and was mauled by a werewolf on the night of a great loss.",
+    },
+    {
+        id: "percy-weasley",
+        name: "Percy Weasley",
+        aliases: ["Percy Ignatius Weasley"],
+        gender: "Male", blood: "Pure-blood", born: 1976, house: "Gryffindor",
+        species: "Human", patronus: "None",
+        affiliations: ["Ministry of Magic", "Hogwarts", "Order of the Phoenix"],
+        firstBook: 1, alive: true, occupation: "Ministry official",
+        description: "A rule-obsessed Head Boy who chose his career over his family and disowned them for two years before crawling back mid-battle.",
+    },
+    {
+        id: "argus-filch",
+        name: "Argus Filch",
+        aliases: ["Filch"],
+        gender: "Male", blood: "Squib", born: 1930, house: "None",
+        species: "Human", patronus: "None",
+        affiliations: ["Hogwarts", "Inquisitorial Squad"],
+        firstBook: 1, alive: true, occupation: "Caretaker",
+        description: "A bitter caretaker who patrols the corridors with a cat, keeps meticulous files on every punishment, and cannot perform magic himself.",
+    },
+    {
+        id: "bartemius-crouch-jr",
+        name: "Barty Crouch Jr",
+        aliases: ["Bartemius Crouch Junior", "Barty Crouch Junior"],
+        gender: "Male", blood: "Pure-blood", born: 1962, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Death Eaters", "Hogwarts"],
+        firstBook: 4, alive: false, occupation: "Death Eater",
+        description: "Smuggled out of prison by his own father, he spent a year disguised as a teacher using a potion that had to be drunk every hour from a hip flask.",
+    },
+    {
+        id: "narcissa-malfoy",
+        name: "Narcissa Malfoy",
+        aliases: ["Narcissa Black", "Cissy"],
+        gender: "Female", blood: "Pure-blood", born: 1955, house: "Slytherin",
+        species: "Human", patronus: "None",
+        affiliations: ["Death Eaters"],
+        firstBook: 4, alive: true, occupation: "None",
+        description: "Never took the Dark Mark herself, but made an unbreakable bargain to protect her son and later lied to the Dark Lord's face to find him.",
+    },
+    {
+        id: "seamus-finnigan",
+        name: "Seamus Finnigan",
+        aliases: ["Seamus"],
+        gender: "Male", blood: "Half-blood", born: 1980, house: "Gryffindor",
+        species: "Human", patronus: "Fox",
+        affiliations: ["Hogwarts", "Dumbledore's Army"],
+        firstBook: 1, alive: true, occupation: "Student",
+        description: "An Irish dormmate with a gift for making things explode, usually by accident, who spent a year doubting his friend before joining the resistance.",
+    },
+];
+
+/** Spell names and effects are factual; every `effect` line is written for this game. */
+const SPELLS = [
+    { id: "alohomora", name: "Alohomora", aliases: ["Unlocking Charm"], effect: "Springs a locked door or window open.", type: "Charm", light: "None", firstBook: 1, mentions: "Used on a forbidden corridor door in the first year." },
+    { id: "wingardium-leviosa", name: "Wingardium Leviosa", aliases: ["Levitation Charm"], effect: "Lifts an object into the air and moves it about.", type: "Charm", light: "None", firstBook: 1, mentions: "The first charm taught in class, and the one that knocked out a troll." },
+    { id: "expelliarmus", name: "Expelliarmus", aliases: ["Disarming Charm"], effect: "Rips the target's wand out of their hand.", type: "Charm", light: "Scarlet", firstBook: 2, mentions: "A signature move, relied on far past the point where it was a surprise." },
+    { id: "expecto-patronum", name: "Expecto Patronum", aliases: ["Patronus Charm"], effect: "Conjures a silver guardian that drives off soul-draining creatures.", type: "Charm", light: "Silver", firstBook: 3, mentions: "Learned in private lessons to survive a lakeside attack." },
+    { id: "avada-kedavra", name: "Avada Kedavra", aliases: ["Killing Curse"], effect: "Kills instantly, with no counter-curse and no wound.", type: "Curse", light: "Green", firstBook: 4, mentions: "One of three curses that carry a life sentence." },
+    { id: "crucio", name: "Crucio", aliases: ["Cruciatus Curse"], effect: "Inflicts unbearable pain for as long as it is held.", type: "Curse", light: "None", firstBook: 4, mentions: "Drove two Aurors permanently out of their minds." },
+    { id: "imperio", name: "Imperio", aliases: ["Imperius Curse"], effect: "Places the victim under the caster's total control.", type: "Curse", light: "None", firstBook: 4, mentions: "Demonstrated on a spider in a fourth-year lesson." },
+    { id: "lumos", name: "Lumos", aliases: [], effect: "Lights the wand tip like a torch.", type: "Charm", light: "White", firstBook: 2, mentions: "The default response to any dark corridor." },
+    { id: "nox", name: "Nox", aliases: [], effect: "Puts out a lit wand tip.", type: "Charm", light: "None", firstBook: 3, mentions: "The counterpart to the wand-lighting charm." },
+    { id: "accio", name: "Accio", aliases: ["Summoning Charm"], effect: "Pulls a named object through the air to the caster.", type: "Charm", light: "None", firstBook: 4, mentions: "Practised all night to fetch a broomstick during a dragon task." },
+    { id: "riddikulus", name: "Riddikulus", aliases: [], effect: "Forces a shape-shifting fear-creature into something absurd.", type: "Charm", light: "None", firstBook: 3, mentions: "Taught with a wardrobe and a queue of nervous students." },
+    { id: "obliviate", name: "Obliviate", aliases: ["Memory Charm"], effect: "Erases specific memories from the target's mind.", type: "Charm", light: "None", firstBook: 2, mentions: "The entire basis of a fraudulent author's career." },
+    { id: "sectumsempra", name: "Sectumsempra", aliases: [], effect: "Slashes the target open as though by an invisible blade.", type: "Curse", light: "None", firstBook: 6, mentions: "Scrawled in the margin of a second-hand potions book." },
+    { id: "petrificus-totalus", name: "Petrificus Totalus", aliases: ["Full Body-Bind Curse"], effect: "Locks the target's arms and legs rigid so they topple over.", type: "Curse", light: "None", firstBook: 1, mentions: "Used on a housemate guarding the common room door." },
+    { id: "protego", name: "Protego", aliases: ["Shield Charm"], effect: "Raises an invisible barrier that bounces spells back.", type: "Charm", light: "None", firstBook: 4, mentions: "A staple of the secret defence club's curriculum." },
+    { id: "stupefy", name: "Stupefy", aliases: ["Stunning Spell"], effect: "Knocks the target unconscious where they stand.", type: "Charm", light: "Red", firstBook: 4, mentions: "Fired in volleys during every large duel in the series." },
+    { id: "reducto", name: "Reducto", aliases: ["Reductor Curse"], effect: "Blasts a solid object into pieces.", type: "Curse", light: "Blue", firstBook: 4, mentions: "Shattered a shelf of prophecy orbs during a Ministry fight." },
+    { id: "alarte-ascendare", name: "Alarte Ascendare", aliases: [], effect: "Shoots the target high into the air.", type: "Charm", light: "None", firstBook: 2, mentions: "Used on a snake during a disastrous duelling club." },
+    { id: "engorgio", name: "Engorgio", aliases: ["Engorgement Charm"], effect: "Swells the target to many times its normal size.", type: "Charm", light: "None", firstBook: 4, mentions: "Applied to a spider in a classroom demonstration." },
+    { id: "reparo", name: "Reparo", aliases: ["Mending Charm"], effect: "Puts a broken object back together.", type: "Charm", light: "None", firstBook: 2, mentions: "Fixes glasses, and one famously unfixable wand." },
+    { id: "aguamenti", name: "Aguamenti", aliases: [], effect: "Produces a jet of clean water from the wand tip.", type: "Charm", light: "None", firstBook: 6, mentions: "Used to fight an inferi attack in a cave." },
+    { id: "incendio", name: "Incendio", aliases: [], effect: "Sets a controlled fire.", type: "Charm", light: "Orange", firstBook: 4, mentions: "Lights a fireplace in a house with no matches." },
+    { id: "morsmordre", name: "Morsmordre", aliases: [], effect: "Casts a colossal skull-and-serpent mark into the sky.", type: "Curse", light: "Green", firstBook: 4, mentions: "Fired over a campsite after a World Cup final." },
+    { id: "finite-incantatem", name: "Finite Incantatem", aliases: ["Finite"], effect: "Cancels spells currently in effect.", type: "Counter-spell", light: "None", firstBook: 2, mentions: "Shouted to break up a chaotic duelling club." },
+    { id: "episkey", name: "Episkey", aliases: [], effect: "Heals a small injury such as a broken nose.", type: "Healing", light: "None", firstBook: 6, mentions: "Used on a nose broken by a well-aimed boot." },
+    { id: "levicorpus", name: "Levicorpus", aliases: [], effect: "Hoists the victim into the air by one ankle.", type: "Jinx", light: "None", firstBook: 6, mentions: "A schoolyard humiliation revisited in a borrowed memory." },
+    { id: "muffliato", name: "Muffliato", aliases: [], effect: "Fills nearby ears with an unidentifiable buzzing.", type: "Charm", light: "None", firstBook: 6, mentions: "Invented in the margins of a textbook to hide conversations." },
+    { id: "tarantallegra", name: "Tarantallegra", aliases: ["Dancing Feet Spell"], effect: "Forces the victim's legs into an uncontrollable dance.", type: "Jinx", light: "None", firstBook: 2, mentions: "One of the few spells that landed at the duelling club." },
+    { id: "rictusempra", name: "Rictusempra", aliases: ["Tickling Charm"], effect: "Doubles the target over with helpless laughter.", type: "Charm", light: "Silver", firstBook: 2, mentions: "An opening move in a schoolboy duel." },
+    { id: "serpensortia", name: "Serpensortia", aliases: [], effect: "Conjures a live snake from the wand tip.", type: "Transfiguration", light: "None", firstBook: 2, mentions: "Produced a snake that revealed a rare inherited ability." },
+    { id: "priori-incantatem", name: "Priori Incantatem", aliases: [], effect: "Replays the last spells a wand performed.", type: "Charm", light: "None", firstBook: 4, mentions: "Used to investigate who conjured a mark over a campsite." },
+    { id: "confundo", name: "Confundo", aliases: ["Confundus Charm"], effect: "Leaves the target muddled and easily misled.", type: "Charm", light: "None", firstBook: 3, mentions: "Blamed for a suspiciously good Quidditch try-out." },
+    { id: "silencio", name: "Silencio", aliases: ["Silencing Charm"], effect: "Robs the target of its voice.", type: "Charm", light: "None", firstBook: 5, mentions: "Practised on croaking ravens and bellowing frogs." },
+    { id: "geminio", name: "Geminio", aliases: ["Doubling Charm"], effect: "Creates worthless copies of whatever it touches.", type: "Charm", light: "None", firstBook: 7, mentions: "Turned a vault's treasure into a scalding flood of duplicates." },
+    { id: "portus", name: "Portus", aliases: [], effect: "Turns an ordinary object into a transport device.", type: "Charm", light: "Blue", firstBook: 5, mentions: "Applied to a blackened old kettle in a headmaster's office." },
+    { id: "homenum-revelio", name: "Homenum Revelio", aliases: [], effect: "Reveals the presence of hidden people nearby.", type: "Charm", light: "None", firstBook: 7, mentions: "Cast on entering an abandoned townhouse." },
+];
+
+/** Every `description` is original clue text written for this game. */
+const PLACES = [
+    { id: "hogwarts", name: "Hogwarts", aliases: ["Hogwarts School of Witchcraft and Wizardry", "the castle"], description: "A vast Scottish castle of moving staircases and talking portraits, hidden from non-magical eyes, where new arrivals are sorted into four houses by an enchanted hat.", region: "Scottish Highlands", kind: "School", firstBook: 1, chapterHint: "First reached by boat across a black lake." },
+    { id: "diagon-alley", name: "Diagon Alley", aliases: ["Diagon"], description: "A crooked cobbled shopping street reached by tapping bricks behind a pub, lined with cauldron shops, an owl emporium and a bank run by goblins.", region: "London", kind: "Shop", firstBook: 1, chapterHint: "Where first-years buy their wands and robes." },
+    { id: "the-burrow", name: "The Burrow", aliases: ["Weasley house"], description: "A lopsided family home that looks as though several storeys were stacked by magic alone, surrounded by chickens, a garden full of gnomes and an orchard used for flying practice.", region: "Devon", kind: "Home", firstBook: 2, chapterHint: "Reached by a flying car in the middle of the night." },
+    { id: "hogsmeade", name: "Hogsmeade", aliases: [], description: "The only entirely magical village in Britain, visited by older students on scheduled weekends, home to a sweet shop, a joke shop and two very different pubs.", region: "Scottish Highlands", kind: "Village", firstBook: 3, chapterHint: "Requires a signed permission slip to visit." },
+    { id: "gringotts", name: "Gringotts", aliases: ["Gringotts Wizarding Bank"], description: "A towering white marble bank staffed by goblins, whose deepest vaults are reached by runaway cart and guarded by a half-blind dragon.", region: "London", kind: "Institution", firstBook: 1, chapterHint: "Broken into twice: once unsuccessfully, once on dragonback." },
+    { id: "ministry-of-magic", name: "Ministry of Magic", aliases: ["the Ministry"], description: "An underground government complex entered through a red telephone box, with a fountain in the atrium and an entire department devoted to unspeakable research.", region: "London", kind: "Institution", firstBook: 4, chapterHint: "Site of a night-time battle over a shelf of glass orbs." },
+    { id: "st-mungos", name: "St Mungo's", aliases: ["St Mungo's Hospital for Magical Maladies and Injuries"], description: "A magical hospital hidden behind a derelict department store window, where healers in lime-green robes treat curse damage, botched spells and creature bites.", region: "London", kind: "Institution", firstBook: 5, chapterHint: "Where a snakebite victim and two long-term patients are visited." },
+    { id: "azkaban", name: "Azkaban", aliases: [], description: "A fortress prison on a bleak island in the North Sea, guarded for centuries by creatures that feed on happiness. Only one inmate is known to have escaped unaided.", region: "North Sea", kind: "Institution", firstBook: 3, chapterHint: "Held an innocent man for twelve years." },
+    { id: "forbidden-forest", name: "Forbidden Forest", aliases: ["the Dark Forest"], description: "Dense woodland on the castle grounds, strictly out of bounds, home to centaurs, a colony of enormous spiders and a herd of skeletal winged horses.", region: "Scottish Highlands", kind: "Wilderness", firstBook: 1, chapterHint: "Entered on a first-year detention, and again to surrender." },
+    { id: "platform-nine-three-quarters", name: "Platform Nine and Three-Quarters", aliases: ["Platform 9 3/4"], description: "A train platform reached by walking straight at a solid barrier between two ordinary ones, where a scarlet steam engine leaves at eleven o'clock sharp each September.", region: "London", kind: "Transport", firstBook: 1, chapterHint: "Sealed shut once, forcing an airborne alternative." },
+    { id: "great-hall", name: "The Great Hall", aliases: [], description: "A cavernous dining room with four long house tables, thousands of floating candles and a ceiling bewitched to mirror the weather outside.", region: "Hogwarts", kind: "School", firstBook: 1, chapterHint: "Where the Sorting and every feast takes place." },
+    { id: "room-of-requirement", name: "Room of Requirement", aliases: ["the Come and Go Room"], description: "A chamber on the seventh floor that only appears to someone who needs it, and becomes exactly what they need. One version is a junk heap centuries deep.", region: "Hogwarts", kind: "School", firstBook: 5, chapterHint: "Headquarters of a secret defence club." },
+    { id: "chamber-of-secrets", name: "Chamber of Secrets", aliases: [], description: "A flooded stone hall far beneath the castle, opened only by someone who can speak to snakes, built to house a monster whose stare can kill.", region: "Hogwarts", kind: "School", firstBook: 2, chapterHint: "Entered through a sink in an out-of-order bathroom." },
+    { id: "gryffindor-tower", name: "Gryffindor Tower", aliases: ["Gryffindor common room"], description: "A round, red-and-gold common room full of squashy armchairs, reached by giving a password to a portrait of a very large lady.", region: "Hogwarts", kind: "School", firstBook: 1, chapterHint: "The password changes whenever the portrait feels like it." },
+    { id: "grimmauld-place", name: "Number Twelve, Grimmauld Place", aliases: ["Grimmauld Place", "12 Grimmauld Place"], description: "A gloomy London townhouse squeezed invisibly between its neighbours, hung with a screaming portrait and a family tree with several faces burned off.", region: "London", kind: "Home", firstBook: 5, chapterHint: "Served as the Order's headquarters." },
+    { id: "privet-drive", name: "Number Four, Privet Drive", aliases: ["Privet Drive", "4 Privet Drive"], description: "A relentlessly ordinary suburban house whose owners pride themselves on being normal, and where a boy slept for years in the cupboard under the stairs.", region: "Surrey", kind: "Home", firstBook: 1, chapterHint: "Besieged by letters delivered down the chimney." },
+    { id: "three-broomsticks", name: "The Three Broomsticks", aliases: [], description: "A warm, crowded village pub run by a popular landlady, famous for a foaming butter-flavoured drink served in tankards.", region: "Hogsmeade", kind: "Shop", firstBook: 3, chapterHint: "Where an overheard conversation revealed a godfather's betrayal." },
+    { id: "hogs-head", name: "The Hog's Head", aliases: [], description: "A filthy, dimly lit pub with a goat smell and a barman who never cleans the glasses, where hooded strangers meet and nobody asks questions.", region: "Hogsmeade", kind: "Shop", firstBook: 5, chapterHint: "Where a secret student army was first recruited." },
+    { id: "ollivanders", name: "Ollivanders", aliases: ["Ollivander's"], description: "A narrow, dusty shop stacked to the ceiling with thousands of thin boxes, where the wand chooses the wizard and the proprietor remembers every sale he ever made.", region: "Diagon Alley", kind: "Shop", firstBook: 1, chapterHint: "Where a holly wand with a phoenix core found its owner." },
+    { id: "knockturn-alley", name: "Knockturn Alley", aliases: [], description: "A dark, narrow side street devoted to the Dark Arts, where shop windows display shrunken heads and cursed objects, and a wrong-turn traveller wants out fast.", region: "London", kind: "Shop", firstBook: 2, chapterHint: "Arrived at by mispronouncing a Floo destination." },
+    { id: "shrieking-shack", name: "The Shrieking Shack", aliases: [], description: "A boarded-up house on a hill, believed to be the most haunted building in Britain, though the screams had a far more ordinary and far sadder explanation.", region: "Hogsmeade", kind: "Home", firstBook: 3, chapterHint: "Reached through a tunnel beneath a violent tree." },
+    { id: "quidditch-pitch", name: "The Quidditch Pitch", aliases: [], description: "An oval field ringed with raised stands and six golden hoops, where a fast-moving winged ball decides most matches regardless of the rest of the score.", region: "Hogwarts", kind: "School", firstBook: 1, chapterHint: "Site of a jinxed broomstick in a first match." },
+    { id: "godrics-hollow", name: "Godric's Hollow", aliases: [], description: "A snowy village with a graveyard and a ruined cottage left standing as a memorial, where a family was destroyed on Halloween.", region: "West Country", kind: "Village", firstBook: 7, chapterHint: "Visited at Christmas, and nearly fatal." },
+    { id: "the-leaky-cauldron", name: "The Leaky Cauldron", aliases: [], description: "A grubby little pub that non-magical passers-by cannot see, serving as the front door between ordinary London and the shopping street behind it.", region: "London", kind: "Shop", firstBook: 1, chapterHint: "Where a runaway student stayed for weeks without punishment." },
+    { id: "the-burrow-attic", name: "Malfoy Manor", aliases: ["the Manor"], description: "A grand, cold country house with white peacocks on the lawn and a cellar used as a holding cell, commandeered as a dark headquarters.", region: "Wiltshire", kind: "Home", firstBook: 7, chapterHint: "Escaped from with the help of a freed house-elf." },
+];
+
+/**
+ * IMPORTANT: these are NOT quotations. Every line below is original writing —
+ * a short line invented for this game that fits the speaker's voice and
+ * situation. Nothing here is transcribed or paraphrased from the books or films.
+ * Swap in your own lines freely; only `speakerId` has to match a character id.
+ */
+const QUOTES = [
+    { id: "q-hagrid-1", line: "Don' look at me like that — he's only dangerous if yeh startle him, an' you startled him.", speakerId: "rubeus-hagrid", firstBook: 1 },
+    { id: "q-hermione-1", line: "I've read ahead, I've cross-referenced it, and I'd rather be thought insufferable than be wrong.", speakerId: "hermione-granger", firstBook: 1 },
+    { id: "q-ron-1", line: "Right. So the plan is to walk directly into the thing that wants to eat us. Brilliant. Love it.", speakerId: "ron-weasley", firstBook: 2 },
+    { id: "q-snape-1", line: "You mistake recklessness for courage. One of them will get you killed, and I expect it will be soon.", speakerId: "severus-snape", firstBook: 3 },
+    { id: "q-dumbledore-1", line: "I have made mistakes larger than most men's ambitions. That is precisely why I am careful with yours.", speakerId: "albus-dumbledore", firstBook: 5 },
+    { id: "q-luna-1", line: "People stop staring eventually. And if they don't, well — that's a rather interesting thing to notice about them.", speakerId: "luna-lovegood", firstBook: 5 },
+    { id: "q-mcgonagall-1", line: "Ten points. Not for the rule you broke, but for the one you should have broken sooner.", speakerId: "minerva-mcgonagall", firstBook: 4 },
+    { id: "q-draco-1", line: "My father could have this place closed by Friday, and you'd all thank him for the holiday.", speakerId: "draco-malfoy", firstBook: 2 },
+    { id: "q-sirius-1", line: "Twelve years in a cell teaches you exactly one thing worth knowing: who came looking.", speakerId: "sirius-black", firstBook: 3 },
+    { id: "q-lupin-1", line: "Fear is not the problem. Fear that has never been laughed at — that is the problem.", speakerId: "remus-lupin", firstBook: 3 },
+    { id: "q-umbridge-1", line: "There is no need for that tone. I am simply making a small, reasonable adjustment. Again.", speakerId: "dolores-umbridge", firstBook: 5 },
+    { id: "q-molly-1", line: "Sit down, eat something, and then you may tell me what you were thinking. In that order.", speakerId: "molly-weasley", firstBook: 2 },
+    { id: "q-fred-1", line: "We're not dropping out, we're graduating early. Into a much better subject.", speakerId: "fred-weasley", firstBook: 5 },
+    { id: "q-dobby-1", line: "It is not a kindness if you must ask permission to give it. So Dobby did not ask.", speakerId: "dobby", firstBook: 2 },
+    { id: "q-voldemort-1", line: "Everything that lives has a last day. I simply declined mine.", speakerId: "voldemort", firstBook: 4 },
+    { id: "q-neville-1", line: "I'm not brave. I just got tired of being the one who waits to see what happens.", speakerId: "neville-longbottom", firstBook: 5 },
+    { id: "q-moody-1", line: "The wand's the last thing to watch. Watch the feet. Feet tell you what the mouth won't.", speakerId: "alastor-moody", firstBook: 4 },
+    { id: "q-lockhart-1", line: "Modesty is all very well, but the public does like a photograph, and I do photograph rather well.", speakerId: "gilderoy-lockhart", firstBook: 2 },
+    { id: "q-bellatrix-1", line: "You flinched. Oh, do it again — I so rarely get to watch the moment it arrives.", speakerId: "bellatrix-lestrange", firstBook: 5 },
+    { id: "q-ginny-1", line: "I grew up with six brothers. You'll have to be a good deal more frightening than that.", speakerId: "ginny-weasley", firstBook: 5 },
+    { id: "q-trelawney-1", line: "I see a great darkness ahead of you, dear. I see it ahead of everyone, but yours is so much closer.", speakerId: "sybill-trelawney", firstBook: 3 },
+    { id: "q-slughorn-1", line: "I never collected trophies. I collected people, and they were all so pleased to be collected.", speakerId: "horace-slughorn", firstBook: 6 },
+    { id: "q-harry-1", line: "Everyone keeps telling me what I'm supposed to be. None of them were there when it happened.", speakerId: "harry-potter", firstBook: 5 },
+    { id: "q-maxime-1", line: "I am not large. I am simply on a different scale from the furniture.", speakerId: "olympe-maxime", firstBook: 4 },
+    { id: "q-filch-1", line: "Oh, there'll be a punishment. I keep the old files. I keep everything.", speakerId: "argus-filch", firstBook: 1 },
+];
+
+/* ============================================================
+   Lookups
+   ============================================================ */
+const CHARACTERS_BY_ID = new Map(CHARACTERS.map(c => [c.id, c]));
+const SPELLS_BY_ID     = new Map(SPELLS.map(s => [s.id, s]));
+const PLACES_BY_ID     = new Map(PLACES.map(p => [p.id, p]));
+
+const BRAND = {
+  storageKey: "wizardle.v1",
+  rolloverHourUTC: 0
+};
+const CLOSE = { bornYear: 10, firstBook: 1 };
+
+const BOOK_TITLES = [
+  "Philosopher's Stone","Chamber of Secrets","Prisoner of Azkaban","Goblet of Fire",
+  "Order of the Phoenix","Half-Blood Prince","Deathly Hallows"
+];
+const bookTitle = n => BOOK_TITLES[n - 1] || ("Book " + n);
+
+/* ============================================================
+   Deterministic randomness
+   ============================================================ */
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+const pickBySeed = (items, seed) => items[hashString(seed) % items.length];
+function pickRandom(items, exclude) {
+  const pool = exclude ? items.filter(i => !exclude(i)) : items;
+  const src = pool.length ? pool : items;
+  return src[Math.floor(Math.random() * src.length)];
+}
+
+/* ============================================================
+   UTC day handling
+   ============================================================ */
+const DAY_MS = 86400000;
+function puzzleDay(now) {
+  const d = new Date((now || new Date()).getTime() - BRAND.rolloverHourUTC * 3600000);
+  return d.toISOString().slice(0, 10);
+}
+const previousDay = day => new Date(Date.parse(day + "T00:00:00Z") - DAY_MS).toISOString().slice(0, 10);
+function msUntilRollover() {
+  const d = new Date(Date.now() - BRAND.rolloverHourUTC * 3600000);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - d.getTime();
+}
+function formatCountdown(ms) {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const p = n => String(n).padStart(2, "0");
+  return p(Math.floor(t / 3600)) + ":" + p(Math.floor(t % 3600 / 60)) + ":" + p(t % 60);
+}
+
+/* ============================================================
+   Guess comparison
+   ============================================================ */
+const exact = (label, g, a) => ({ label, value: g, state: g === a ? "hit" : "miss" });
+
+// Multi-value columns: green only on an identical set, amber on any overlap.
+function overlap(label, g, a) {
+  const gs = new Set(g), as = new Set(a);
+  const shared = [...gs].filter(v => as.has(v));
+  const state = (shared.length === gs.size && gs.size === as.size) ? "hit"
+              : shared.length ? "close" : "miss";
+  return { label, value: g.length ? g.join(" • ") : "None", state };
+}
+
+// Numeric columns: green on equal, amber within threshold, plus a direction arrow.
+function numeric(label, g, a, within, render) {
+  render = render || String;
+  if (g === null || a === null) {
+    return { label, value: g === null ? "Unknown" : render(g), state: g === a ? "hit" : "miss" };
+  }
+  if (g === a) return { label, value: render(g), state: "hit" };
+  return {
+    label,
+    value: render(g),
+    state: Math.abs(g - a) <= within ? "close" : "miss",
+    direction: a > g ? "up" : "down"
+  };
+}
+
+const CHARACTER_COLUMNS = ["Character","Gender","Blood","Born","House","Species","Patronus","Affiliations","First Appearance"];
+const SPELL_COLUMNS     = ["Spell","Type","Light","First Appearance"];
+const PLACE_COLUMNS     = ["Location","Kind","Region","First Appearance"];
+
+function compareCharacter(g, a) {
+  return {
+    id: g.id, name: g.name, image: g.image, correct: g.id === a.id,
+    cells: [
+      exact("Gender", g.gender, a.gender),
+      exact("Blood", g.blood, a.blood),
+      numeric("Born", g.born, a.born, CLOSE.bornYear),
+      exact("House", g.house, a.house),
+      exact("Species", g.species, a.species),
+      exact("Patronus", g.patronus, a.patronus),
+      overlap("Affiliations", g.affiliations, a.affiliations),
+      numeric("First Appearance", g.firstBook, a.firstBook, CLOSE.firstBook, bookTitle)
+    ]
+  };
+}
+function compareSpell(g, a) {
+  return {
+    id: g.id, name: g.name, correct: g.id === a.id,
+    cells: [
+      exact("Type", g.type, a.type),
+      exact("Light", g.light, a.light),
+      numeric("First Appearance", g.firstBook, a.firstBook, CLOSE.firstBook, bookTitle)
+    ]
+  };
+}
+function comparePlace(g, a) {
+  return {
+    id: g.id, name: g.name, correct: g.id === a.id,
+    cells: [
+      exact("Kind", g.kind, a.kind),
+      exact("Region", g.region, a.region),
+      numeric("First Appearance", g.firstBook, a.firstBook, CLOSE.firstBook, bookTitle)
+    ]
+  };
+}
+
+/* ============================================================
+   Icons — original generic line art
+   ============================================================ */
+const SVG = {
+  classic:'<svg viewBox="0 0 32 32"><path d="M16 3l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="16" cy="15" r="2.2" fill="currentColor"/></svg>',
+  quote:'<svg viewBox="0 0 32 32"><path d="M12 8c-4 1.6-6 4.6-6 9v7h8v-8H9c0-2.6 1.1-4.4 3.6-5.4zm14 0c-4 1.6-6 4.6-6 9v7h8v-8h-5c0-2.6 1.1-4.4 3.6-5.4z" fill="currentColor"/></svg>',
+  spell:'<svg viewBox="0 0 32 32"><path d="M6 26L24 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M22 6l4 4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M9 7l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" fill="currentColor"/></svg>',
+  description:'<svg viewBox="0 0 32 32"><circle cx="13" cy="11" r="5" fill="currentColor"/><path d="M3 27c0-5.2 4.5-8 10-8s10 2.8 10 8z" fill="currentColor"/><circle cx="23" cy="12" r="4" fill="currentColor" opacity=".55"/></svg>',
+  location:'<svg viewBox="0 0 32 32"><path d="M16 4a8 8 0 00-8 8c0 6 8 16 8 16s8-10 8-16a8 8 0 00-8-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="12" r="3" fill="currentColor"/></svg>',
+  flame:'<svg viewBox="0 0 32 32"><path d="M16 2c1 6-4 7-4 12a4 4 0 004 4 4 4 0 004-4c0-2-1-3-1-5 3 2 6 5 6 10a9 9 0 11-18 0C7 12 14 10 16 2z" fill="currentColor"/></svg>',
+  infinity:'<svg viewBox="0 0 32 32"><path d="M10 11a5 5 0 100 10c4 0 6-10 12-10a5 5 0 110 10c-6 0-8-10-12-10z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>',
+  calendar:'<svg viewBox="0 0 32 32"><rect x="5" y="7" width="22" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 13h22M11 4v6M21 4v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  eyeOff:'<svg viewBox="0 0 32 32"><path d="M4 16s5-8 12-8 12 8 12 8-5 8-12 8S4 16 4 16z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 27L27 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  info:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 14v9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="9.5" r="1.6" fill="currentColor"/></svg>',
+  chart:'<svg viewBox="0 0 32 32"><path d="M6 26V15M13 26V7M20 26v-8M27 26V11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  shield:'<svg viewBox="0 0 32 32"><path d="M16 3l11 4v9c0 7-5 11-11 13C10 27 5 23 5 16V7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
+};
+
+/* ============================================================
+   Mode definitions
+   ============================================================ */
+const charSearch = CHARACTERS.map(c => ({
+  id: c.id, name: c.name, terms: [c.name].concat(c.aliases).map(t => t.toLowerCase())
+}));
+const charName = id => (CHARACTERS_BY_ID.get(id) || {}).name || id;
+const cmpChar = (g, a) => {
+  const gg = CHARACTERS_BY_ID.get(g), aa = CHARACTERS_BY_ID.get(a);
+  return gg && aa ? compareCharacter(gg, aa) : null;
+};
+
+const CHARACTER_HINTS = [
+  { after: 3, label: "Dead or alive", glyph: "†",
+    reveal: id => CHARACTERS_BY_ID.get(id).alive ? "Still alive" : "Dead" },
+  { after: 7, label: "Occupation", glyph: "?",
+    reveal: id => CHARACTERS_BY_ID.get(id).occupation }
+];
+
+const MODES = {
+  classic: {
+    id:"classic", label:"Classic", heading:"Classic Mode",
+    prompt:"Guess today's character!", placeholder:"Enter a character name or alias…",
+    columns: CHARACTER_COLUMNS, answerIds: CHARACTERS.map(c => c.id), search: charSearch,
+    clue: () => null, clueKicker: null,
+    displayName: charName, portrait: id => (CHARACTERS_BY_ID.get(id) || {}).image,
+    compare: cmpChar, hints: CHARACTER_HINTS
+  },
+  quote: {
+    id:"quote", label:"Quote", heading:"Quote Mode",
+    prompt:"Guess today's character from the line!", placeholder:"Enter a character name or alias…",
+    columns: CHARACTER_COLUMNS,
+    // Only speakers who actually have a line can be the answer.
+    answerIds: [...new Set(QUOTES.map(q => q.speakerId))],
+    search: charSearch,
+    clueKicker: "Who would say this?",
+    clue: id => {
+      const lines = QUOTES.filter(q => q.speakerId === id);
+      if (!lines.length) return null;
+      // Stable per-speaker pick so the clue never changes mid-game.
+      return "“" + lines[hashString(id) % lines.length].line + "”";
+    },
+    displayName: charName, portrait: id => (CHARACTERS_BY_ID.get(id) || {}).image,
+    compare: cmpChar,
+    hints: [{ after: 4, label: "Book", glyph: "?", reveal: id => {
+      const l = QUOTES.find(q => q.speakerId === id);
+      return l ? bookTitle(l.firstBook) : "Unknown";
+    }}].concat(CHARACTER_HINTS)
+  },
+  spell: {
+    id:"spell", label:"Spell", heading:"Spell Mode",
+    prompt:"Guess today's spell from the description!", placeholder:"Enter a spell name…",
+    columns: SPELL_COLUMNS, answerIds: SPELLS.map(s => s.id),
+    search: SPELLS.map(s => ({ id:s.id, name:s.name, terms:[s.name].concat(s.aliases).map(t=>t.toLowerCase()) })),
+    clueKicker: "Which spell is being described?",
+    clue: id => "“" + SPELLS_BY_ID.get(id).effect + "”",
+    displayName: id => SPELLS_BY_ID.get(id).name, portrait: () => undefined,
+    compare: (g,a) => {
+      const gg = SPELLS_BY_ID.get(g), aa = SPELLS_BY_ID.get(a);
+      return gg && aa ? compareSpell(gg, aa) : null;
+    },
+    hints: [
+      { after: 4, label: "Where it appears", glyph: "?", reveal: id => SPELLS_BY_ID.get(id).mentions },
+      { after: 8, label: "Spell type", glyph: "✦", reveal: id => SPELLS_BY_ID.get(id).type }
+    ]
+  },
+  description: {
+    id:"description", label:"Description", heading:"Description Mode",
+    prompt:"Find out which character is being described", placeholder:"Enter a character name or alias…",
+    columns: CHARACTER_COLUMNS, answerIds: CHARACTERS.map(c => c.id), search: charSearch,
+    clueKicker: "Which character is being described?",
+    clue: id => "“" + CHARACTERS_BY_ID.get(id).description + "”",
+    displayName: charName, portrait: id => (CHARACTERS_BY_ID.get(id) || {}).image,
+    compare: cmpChar,
+    hints: [
+      { after: 2, label: "Book", glyph: "?", reveal: id => bookTitle(CHARACTERS_BY_ID.get(id).firstBook) },
+      { after: 5, label: "Occupation", glyph: "☖", reveal: id => CHARACTERS_BY_ID.get(id).occupation }
+    ]
+  },
+  location: {
+    id:"location", label:"Location", heading:"Location Mode",
+    prompt:"Find the place being described!", placeholder:"Enter a place name…",
+    columns: PLACE_COLUMNS, answerIds: PLACES.map(p => p.id),
+    search: PLACES.map(p => ({ id:p.id, name:p.name, terms:[p.name].concat(p.aliases).map(t=>t.toLowerCase()) })),
+    clueKicker: "Which location is being described?",
+    clue: id => "“" + PLACES_BY_ID.get(id).description + "”",
+    displayName: id => PLACES_BY_ID.get(id).name, portrait: () => undefined,
+    compare: (g,a) => {
+      const gg = PLACES_BY_ID.get(g), aa = PLACES_BY_ID.get(a);
+      return gg && aa ? comparePlace(gg, aa) : null;
+    },
+    hints: [
+      { after: 5,  label: "Book", glyph: "?", reveal: id => bookTitle(PLACES_BY_ID.get(id).firstBook) },
+      { after: 10, label: "Region", glyph: "◎", reveal: id => PLACES_BY_ID.get(id).region },
+      { after: 15, label: "Where in the story", glyph: "?", reveal: id => PLACES_BY_ID.get(id).chapterHint }
+    ]
+  }
+};
+const MODE_ORDER = ["classic","quote","spell","description","location"];
+const nextMode = m => MODE_ORDER[(MODE_ORDER.indexOf(m) + 1) % MODE_ORDER.length];
+
+/* ============================================================
+   State — persisted to localStorage
+   ============================================================ */
+const dailyAnswer = (mode, day) => pickBySeed(MODES[mode].answerIds, BRAND.storageKey + "|" + mode + "|" + day);
+
+// Unlimited avoids anything still inside the recent-history window.
+function unlimitedAnswer(mode, seen) {
+  const ids = MODES[mode].answerIds;
+  const recent = new Set(seen.slice(0, Math.floor(ids.length * 0.6)));
+  return pickRandom(ids, id => recent.has(id));
+}
+
+const blankSession = answerId => ({ answerId, guesses: [], status: "playing" });
+const emptyStats = () => ({ played:0, won:0, currentStreak:0, maxStreak:0, guessesInWins:0, lastWinDay:null });
+const byMode = make => {
+  const o = {};
+  MODE_ORDER.forEach(m => { o[m] = make(m); });
+  return o;
+};
+
+function freshState() {
+  const day = puzzleDay();
+  return {
+    mode: "classic", kind: "daily", house: null, spoilerFree: false, day,
+    daily: byMode(m => blankSession(dailyAnswer(m, day))),
+    unlimited: byMode(m => blankSession(unlimitedAnswer(m, []))),
+    seen: byMode(() => []),
+    stats: { daily: byMode(emptyStats), unlimited: byMode(emptyStats) }
+  };
+}
+
+let S;
+function load() {
+  try {
+    const raw = localStorage.getItem(BRAND.storageKey);
+    if (!raw) return freshState();
+    const parsed = JSON.parse(raw);
+    // Merge over a fresh state so a data update never leaves a mode undefined.
+    const base = freshState();
+    return Object.assign(base, parsed, {
+      daily:     Object.assign(base.daily, parsed.daily),
+      unlimited: Object.assign(base.unlimited, parsed.unlimited),
+      seen:      Object.assign(base.seen, parsed.seen),
+      stats: {
+        daily:     Object.assign(base.stats.daily, (parsed.stats || {}).daily),
+        unlimited: Object.assign(base.stats.unlimited, (parsed.stats || {}).unlimited)
+      }
+    });
+  } catch (e) {
+    return freshState();
+  }
+}
+function save() {
+  try { localStorage.setItem(BRAND.storageKey, JSON.stringify(S)); } catch (e) { /* private mode */ }
+}
+
+// Re-seed the daily puzzles when the UTC day turns over.
+function syncDay() {
+  const today = puzzleDay();
+  if (S.day === today) return false;
+  MODE_ORDER.forEach(m => {
+    const st = S.stats.daily[m];
+    if (S.daily[m].status === "playing" && S.daily[m].guesses.length) {
+      st.played++; st.currentStreak = 0;              // abandoned mid-game
+    } else if (S.daily[m].status !== "won" && st.lastWinDay !== S.day) {
+      st.currentStreak = 0;                            // never started
+    }
+  });
+  S.day = today;
+  S.daily = byMode(m => blankSession(dailyAnswer(m, today)));
+  save();
+  return true;
+}
+
+const session = () => S[S.kind][S.mode];
+const stats   = () => S.stats[S.kind][S.mode];
+
+function submitGuess(id) {
+  const def = MODES[S.mode], sess = session();
+  if (sess.status !== "playing") return false;
+  if (!def.search.some(s => s.id === id)) return false;
+  if (sess.guesses.indexOf(id) !== -1) return false;
+
+  sess.guesses.unshift(id);
+  if (id === sess.answerId) {
+    sess.status = "won";
+    const st = stats();
+    // A daily streak survives only if the previous win was yesterday.
+    const continues = S.kind === "unlimited" ||
+      st.lastWinDay === previousDay(S.day) || st.lastWinDay === S.day;
+    st.played++; st.won++;
+    st.guessesInWins += sess.guesses.length;
+    st.currentStreak = continues ? st.currentStreak + 1 : 1;
+    st.maxStreak = Math.max(st.maxStreak, st.currentStreak);
+    if (S.kind === "daily") st.lastWinDay = S.day;
+  }
+  save();
+  return true;
+}
+
+function giveUp() {
+  const sess = session();
+  if (sess.status !== "playing") return;
+  sess.status = "revealed";
+  const st = stats();
+  st.played++; st.currentStreak = 0;
+  save();
+}
+
+function nextPuzzle() {
+  const m = S.mode;
+  S.seen[m] = [S.unlimited[m].answerId].concat(S.seen[m]).slice(0, 200);
+  S.unlimited[m] = blankSession(unlimitedAnswer(m, S.seen[m]));
+  S.kind = "unlimited";
+  save();
+}
+
+function resetEverything() {
+  S = freshState();
+  save();
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+let countdownTimer = null;
+
+function renderModes() {
+  $("modes").innerHTML = MODE_ORDER.map(m => {
+    const solved = S.daily[m].status === "won";
+    const tick = (S.kind === "daily" && solved)
+      ? '<span class="done" aria-label="solved today">✓</span>' : "";
+    return '<button class="mode" data-mode="' + m + '" aria-current="' + (m === S.mode) + '">' +
+             '<span class="disc">' + SVG[m] + tick + '</span>' +
+             '<span class="mode-label">' + esc(MODES[m].label) + '</span>' +
+           '</button>';
+  }).join("");
+}
+
+function renderPanel() {
+  const def = MODES[S.mode], st = stats();
+  $("mode-heading").textContent = def.heading;
+  $("mode-prompt").textContent = def.prompt;
+  $("streak").className = "streak" + (st.currentStreak > 0 ? " lit" : "");
+  $("streak").innerHTML = SVG.flame + st.currentStreak;
+
+  $("kind-daily").innerHTML = SVG.calendar + "Daily";
+  $("kind-unlimited").innerHTML = SVG.infinity + "Unlimited";
+  $("kind-daily").setAttribute("aria-pressed", S.kind === "daily");
+  $("kind-unlimited").setAttribute("aria-pressed", S.kind === "unlimited");
+
+  $("btn-house").innerHTML = S.house ? esc(S.house.slice(0, 4).toUpperCase()) : SVG.shield;
+  $("btn-spoiler").innerHTML = SVG.eyeOff;
+  $("btn-spoiler").setAttribute("aria-pressed", S.spoilerFree);
+  $("btn-stats").innerHTML = SVG.chart;
+  $("btn-info").innerHTML = SVG.info;
+}
+
+function renderHints() {
+  const def = MODES[S.mode], sess = session();
+  const over = sess.status !== "playing";
+  const n = sess.guesses.length;
+  $("hints").innerHTML = def.hints.map(h => {
+    const on = over || n >= h.after;
+    const left = h.after - n;
+    const inner = on
+      ? '<span>' + esc(h.label) + '</span><span class="val">' + esc(h.reveal(sess.answerId)) + '</span>'
+      : '<span>' + esc(h.label) + ' in ' + left + ' ' + (left === 1 ? "guess" : "guesses") + '</span>';
+    return '<div class="hint' + (on ? " on" : "") + '">' +
+             '<span class="glyph">' + esc(h.glyph) + '</span>' + inner +
+           '</div>';
+  }).join("");
+}
+
+function renderClue() {
+  const def = MODES[S.mode], text = def.clue(session().answerId);
+  if (!text) { $("clue").classList.add("hidden"); return; }
+  $("clue").classList.remove("hidden");
+  $("clue-kicker").textContent = def.clueKicker || "";
+  $("clue-body").textContent = text;
+}
+
+function renderTable() {
+  const def = MODES[S.mode], sess = session();
+  const rows = sess.guesses.map(g => def.compare(g, sess.answerId)).filter(Boolean);
+  if (!rows.length) { $("table").innerHTML = ""; return; }
+
+  const head = def.columns.map(c => "<th>" + esc(c) + "</th>").join("");
+  const body = rows.map(row => {
+    const name = '<td><div class="cell name' + (row.correct ? " hit" : "") + '">' +
+                 (row.image ? '<img class="thumb" src="' + esc(row.image) + '" alt="">' : "") +
+                 "<span>" + esc(row.name) + "</span></div></td>";
+    const rest = row.cells.map((c, i) => {
+      const arrow = c.direction
+        ? '<span class="arrow" aria-label="' + (c.direction === "up" ? "higher" : "lower") + '">' +
+          (c.direction === "up" ? "▲" : "▼") + "</span>"
+        : "";
+      return '<td><div class="cell ' + c.state + '" style="animation-delay:' + (i * 70) + 'ms">' +
+             "<span>" + esc(c.value) + "</span>" + arrow + "</div></td>";
+    }).join("");
+    return "<tr>" + name + rest + "</tr>";
+  }).join("");
+
+  $("table").innerHTML =
+    '<div class="table-wrap"><table class="guesses"><thead><tr>' + head + "</tr></thead><tbody>" +
+    body + "</tbody></table></div>" +
+    '<p class="legend">' +
+      '<span><i class="swatch" style="background:var(--hit)"></i> exact</span>' +
+      '<span><i class="swatch" style="background:var(--close)"></i> partial / close</span>' +
+      '<span><i class="swatch" style="background:var(--miss)"></i> wrong</span>' +
+      "<span>▲ answer is higher · ▼ lower</span>" +
+    "</p>";
+}
+
+function renderEnd() {
+  const def = MODES[S.mode], sess = session();
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+
+  if (sess.status === "playing") {
+    $("end").innerHTML = "";
+    $("giveup-wrap").classList.toggle("hidden", sess.guesses.length < 4);
+    return;
+  }
+  $("giveup-wrap").classList.add("hidden");
+
+  const name = def.displayName(sess.answerId);
+  const art = def.portrait(sess.answerId);
+  const initials = name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const up = nextMode(S.mode);
+  const n = sess.guesses.length;
+
+  const tail = S.kind === "daily"
+    ? '<p class="label">Next puzzle in:</p><p class="countdown" id="cd">' + formatCountdown(msUntilRollover()) + "</p>" +
+      '<p class="label">(00:00 UTC)</p>' +
+      '<div class="actions"><button class="btn" id="next">Keep playing — Unlimited</button></div>' +
+      '<div class="next-mode"><p class="label">Next mode:</p>' +
+        '<button class="mode" data-mode="' + up + '"><span class="disc">' + SVG[up] + "</span>" +
+        '<span class="mode-label">' + esc(MODES[up].label) + "</span></button></div>"
+    : '<div class="actions"><button class="btn" id="next">Next puzzle →</button>' +
+      '<button class="btn ghost" data-mode="' + up + '">Try ' + esc(MODES[up].label) + "</button></div>";
+
+  $("end").innerHTML =
+    '<section class="end"><h2>' + (sess.status === "won" ? "You win!" : "Out of luck") + "</h2>" +
+    '<div class="portrait">' + (art ? '<img src="' + esc(art) + '" alt="">' : "<span>" + esc(initials) + "</span>") + "</div>" +
+    '<p class="label">' + (S.kind === "daily" ? "Today's answer was:" : "The answer was:") + "</p>" +
+    '<p class="answer">' + esc(name) + "</p>" +
+    (sess.status === "won" ? '<p class="label">Solved in ' + n + " " + (n === 1 ? "guess" : "guesses") + ".</p>" : "") +
+    tail + "</section>";
+
+  if (S.kind === "daily") {
+    countdownTimer = setInterval(() => {
+      const el = $("cd");
+      if (!el) return;
+      const left = msUntilRollover();
+      el.textContent = formatCountdown(left);
+      if (left <= 0 && syncDay()) render();
+    }, 1000);
+  }
+}
+
+function renderYesterday() {
+  const el = $("yesterday");
+  if (S.kind !== "daily" || S.spoilerFree) { el.classList.add("hidden"); return; }
+  el.classList.remove("hidden");
+  el.innerHTML = "Yesterday's answer was <b>" +
+    esc(MODES[S.mode].displayName(dailyAnswer(S.mode, previousDay(S.day)))) + "</b>";
+}
+
+function renderInput() {
+  const def = MODES[S.mode], over = session().status !== "playing";
+  const input = $("guess");
+  input.placeholder = def.placeholder;
+  input.disabled = over;
+  $("submit").disabled = over;
+}
+
+function render() {
+  renderModes(); renderPanel(); renderHints(); renderClue();
+  renderInput(); renderEnd(); renderTable(); renderYesterday();
+}
+
+/* ============================================================
+   Autocomplete
+   ============================================================ */
+let matches = [], active = 0;
+
+function closeSuggestions() {
+  matches = []; active = 0;
+  $("suggestions").classList.add("hidden");
+  $("suggestions").innerHTML = "";
+}
+
+function updateSuggestions() {
+  const q = $("guess").value.trim().toLowerCase();
+  const sess = session();
+  if (!q || sess.status !== "playing") return closeSuggestions();
+
+  const used = new Set(sess.guesses);
+  matches = MODES[S.mode].search
+    .filter(item => !used.has(item.id))
+    .map(item => {
+      // Prefer a prefix match on any term, then any substring match.
+      let best = Infinity, via = "";
+      item.terms.forEach(term => {
+        const i = term.indexOf(q);
+        if (i === -1) return;
+        const score = i === 0 ? 0 : 1;
+        if (score < best) { best = score; via = term; }
+      });
+      return best === Infinity ? null : { item, score: best, via };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score || a.item.name.localeCompare(b.item.name))
+    .slice(0, 8);
+
+  if (!matches.length) return closeSuggestions();
+  active = Math.min(active, matches.length - 1);
+  $("suggestions").classList.remove("hidden");
+  $("suggestions").innerHTML = matches.map((m, i) => {
+    const alias = m.via !== m.item.name.toLowerCase()
+      ? '<span class="alias"> — matched “' + esc(m.via) + "”</span>" : "";
+    return '<li class="' + (i === active ? "active" : "") + '" role="option" aria-selected="' + (i === active) + '">' +
+           '<button type="button" data-i="' + i + '">' + esc(m.item.name) + alias + "</button></li>";
+  }).join("");
+}
+
+function commit(id) {
+  if (!submitGuess(id)) {
+    $("notice").textContent = "You have already guessed that one.";
+    return;
+  }
+  $("notice").textContent = "";
+  $("guess").value = "";
+  closeSuggestions();
+  render();
+  if (!$("guess").disabled) $("guess").focus();
+}
+
+/* ============================================================
+   Dialogs
+   ============================================================ */
+const HOUSES = ["Gryffindor","Hufflepuff","Ravenclaw","Slytherin"];
+
+function openDialog(html) {
+  $("dialog").innerHTML = '<div class="backdrop"><div class="modal">' +
+    '<button class="modal-close" aria-label="Close">×</button>' + html + "</div></div>";
+}
+const closeDialog = () => { $("dialog").innerHTML = ""; };
+
+function houseDialog() {
+  openDialog("<h2>Choose your house</h2>" +
+    "<p>Purely cosmetic — it just tags the header.</p>" +
+    '<div class="houses">' + HOUSES.map(h =>
+      '<button class="house-btn" data-house="' + h + '" aria-pressed="' + (S.house === h) + '">' + h + "</button>"
+    ).join("") + "</div>" +
+    '<p style="margin-top:14px"><button class="btn ghost" data-house="">No house, thanks</button></p>');
+}
+
+function statsDialog() {
+  const bucket = S.stats[S.kind];
+  const t = MODE_ORDER.reduce((a, m) => {
+    const s = bucket[m];
+    a.played += s.played; a.won += s.won; a.g += s.guessesInWins;
+    a.best = Math.max(a.best, s.maxStreak);
+    return a;
+  }, { played:0, won:0, g:0, best:0 });
+  const pct = t.played ? Math.round(t.won / t.played * 100) + "%" : "0%";
+
+  openDialog("<h2>" + (S.kind === "daily" ? "Daily statistics" : "Unlimited statistics") + "</h2>" +
+    '<div class="statgrid">' +
+      '<div class="statbox"><b>' + t.played + "</b><span>played</span></div>" +
+      '<div class="statbox"><b>' + pct + "</b><span>win rate</span></div>" +
+      '<div class="statbox"><b>' + t.best + "</b><span>best streak</span></div>" +
+      '<div class="statbox"><b>' + (t.won ? (t.g / t.won).toFixed(1) : "—") + "</b><span>avg guesses</span></div>" +
+    "</div>" +
+    '<table style="width:100%;border-collapse:collapse">' +
+      '<thead><tr style="text-align:left;color:var(--text-dim);font-size:.85rem">' +
+      "<th>Mode</th><th>Played</th><th>Won</th><th>Streak</th><th>Best</th></tr></thead><tbody>" +
+      MODE_ORDER.map(m => {
+        const s = bucket[m];
+        return '<tr style="border-top:1px solid var(--edge)">' +
+          '<td style="padding:8px 4px">' + esc(MODES[m].label) + "</td>" +
+          '<td style="padding:8px 4px">' + s.played + "</td>" +
+          '<td style="padding:8px 4px">' + s.won + "</td>" +
+          '<td style="padding:8px 4px">' + s.currentStreak + "</td>" +
+          '<td style="padding:8px 4px">' + s.maxStreak + "</td></tr>";
+      }).join("") +
+    "</tbody></table>" +
+    '<p style="margin-top:18px"><button class="btn ghost" id="reset">Reset all progress</button></p>');
+}
+
+function infoDialog() {
+  openDialog("<h2>How to play</h2><ul>" +
+    "<li><b>Classic</b> — guess the character. Each guess fills a row comparing house, blood status, species, patronus and more against the answer.</li>" +
+    "<li><b>Quote</b> — a line is shown; work out who would say it.</li>" +
+    "<li><b>Spell</b> — a spell's effect is described; name the spell.</li>" +
+    "<li><b>Description</b> — a character is described without being named.</li>" +
+    "<li><b>Location</b> — a place is described; name it.</li></ul>" +
+    "<p>Green means an exact match, amber means close or partially overlapping, red means wrong. Arrows on numeric columns point towards the answer.</p>" +
+    "<p><b>Daily</b> gives everyone the same five puzzles, rolling over at 00:00 UTC, and keeps a streak. <b>Unlimited</b> deals a fresh puzzle whenever you want one, with its own separate stats — so practising never costs you a daily streak.</p>" +
+    '<p style="font-size:.85rem;opacity:.8">An unofficial fan game. All clue text here is original writing, including the lines in Quote mode, which are invented rather than quoted. Character and spell attributes are drawn from the published books. Not affiliated with or endorsed by the rights holders.</p>');
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+document.addEventListener("click", e => {
+  const modeBtn = e.target.closest("[data-mode]");
+  if (modeBtn) {
+    S.mode = modeBtn.getAttribute("data-mode");
+    save(); closeDialog(); render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  const sugg = e.target.closest(".suggestions button");
+  if (sugg) { commit(matches[+sugg.getAttribute("data-i")].item.id); return; }
+
+  const houseBtn = e.target.closest("[data-house]");
+  if (houseBtn) {
+    S.house = houseBtn.getAttribute("data-house") || null;
+    save(); closeDialog(); render();
+    return;
+  }
+  if (e.target.closest(".modal-close") || e.target.classList.contains("backdrop")) { closeDialog(); return; }
+  if (e.target.closest("#reset")) { resetEverything(); closeDialog(); render(); return; }
+  if (e.target.closest("#next")) {
+    nextPuzzle(); render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  if (e.target.closest("#giveup")) { giveUp(); render(); return; }
+  if (e.target.closest("#btn-house")) { houseDialog(); return; }
+  if (e.target.closest("#btn-stats")) { statsDialog(); return; }
+  if (e.target.closest("#btn-info"))  { infoDialog(); return; }
+  if (e.target.closest("#btn-spoiler")) { S.spoilerFree = !S.spoilerFree; save(); render(); return; }
+  if (e.target.closest("#kind-daily"))     { S.kind = "daily";     $("notice").textContent = ""; save(); render(); return; }
+  if (e.target.closest("#kind-unlimited")) { S.kind = "unlimited"; $("notice").textContent = ""; save(); render(); return; }
+  if (e.target.closest("#submit")) { if (matches.length) commit(matches[active].item.id); return; }
+  if (!e.target.closest(".guessbar")) closeSuggestions();
+});
+
+$("guess").addEventListener("input", () => { active = 0; updateSuggestions(); });
+$("guess").addEventListener("focus", updateSuggestions);
+$("guess").addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(active + 1, matches.length - 1); updateSuggestions(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(active - 1, 0); updateSuggestions(); }
+  else if (e.key === "Enter") { e.preventDefault(); if (matches.length) commit(matches[active].item.id); }
+  else if (e.key === "Escape") closeSuggestions();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDialog(); });
+
+/* ============================================================
+   Boot
+   ============================================================ */
+S = load();
+syncDay();
+render();
+// Catch a rollover that happens while the tab is left open.
+setInterval(() => { if (syncDay()) render(); }, 30000);
+</script>
+</body>
+</html>
